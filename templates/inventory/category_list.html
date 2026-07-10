@@ -1,0 +1,198 @@
+{% extends 'base.html' %}
+{% block title %}Categories{% endblock %}
+{% block page_title %}Product Categories{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <a href="{% if request.GET.next %}{{ request.GET.next }}{% else %}{% url 'inventory:product_list' %}{% endif %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i> Back
+  </a>
+  <a href="{% url 'inventory:category_add' %}{% if request.GET.next %}?next={{ request.GET.next }}{% endif %}" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-1"></i> Add Category
+  </a>
+</div>
+
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Category Name</th>
+          <th>Products</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cat in categories %}
+        <tr class="category-row" data-pk="{{ cat.pk }}" style="cursor:pointer;">
+          <td class="fw-semibold cat-name">
+            <i class="bi bi-tag me-2 text-primary"></i>{{ cat.name }}
+          </td>
+          <td>
+            <span class="badge bg-primary-subtle text-primary">
+              {{ cat.product_set.count }} product{{ cat.product_set.count|pluralize }}
+            </span>
+          </td>
+          <td class="text-end" onclick="event.stopPropagation()">
+            <a href="{% url 'inventory:category_edit' cat.pk %}" class="btn btn-sm btn-outline-secondary me-1" title="Edit">
+              <i class="bi bi-pencil"></i>
+            </a>
+            <a href="{% url 'inventory:category_delete' cat.pk %}" class="btn btn-sm btn-outline-danger" title="Delete">
+              <i class="bi bi-trash"></i>
+            </a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="3" class="text-center text-muted py-5">
+            <i class="bi bi-grid fs-2 d-block mb-2"></i>
+            No categories yet.
+            <a href="{% url 'inventory:category_add' %}">Add your first one.</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Products Modal ─────────────────────────────────────────────────────── -->
+<div class="modal fade" id="categoryProductsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content shadow-sm">
+
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-tag me-2 text-primary"></i>
+          <span id="modalCategoryName"></span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <!-- Summary bar -->
+      <div class="px-3 py-2 border-bottom bg-light d-none" id="modalSummaryBar">
+        <div class="d-flex gap-3 flex-wrap small text-muted">
+          <span><i class="bi bi-box-seam me-1"></i><strong id="statTotal">0</strong> products</span>
+          <span><i class="bi bi-exclamation-triangle me-1 text-warning"></i><strong id="statLow">0</strong> low stock</span>
+          <span><i class="bi bi-currency-dollar me-1 text-success"></i>Stock value: <strong>Rs. <span id="statValue">0</span></strong></span>
+        </div>
+      </div>
+
+      <div class="modal-body p-3">
+
+        <!-- Loading -->
+        <div id="modalLoading" class="text-center py-5">
+          <div class="spinner-border text-primary" role="status"></div>
+          <div class="mt-2 text-muted small">Loading products…</div>
+        </div>
+
+        <!-- Products table -->
+        <div id="modalContent" class="d-none">
+          <div class="card shadow-sm">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Product</th>
+                  <th>Supplier</th>
+                  <th class="text-end">Buy Price</th>
+                  <th class="text-end">Sell Price</th>
+                  <th class="text-end">Margin</th>
+                  <th class="text-center">Stock</th>
+                  <th class="text-center">Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="modalTableBody"></tbody>
+            </table>
+          </div>
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <div id="modalEmpty" class="text-center py-5 d-none">
+          <i class="bi bi-box-seam fs-2 text-muted d-block mb-2"></i>
+          <p class="text-muted mb-3">No products in this category yet.</p>
+          <a href="{% url 'inventory:product_add' %}" class="btn btn-primary btn-sm">
+            <i class="bi bi-plus-lg me-1"></i>Add Product
+          </a>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.category-row').forEach(row => {
+  row.addEventListener('click', function () {
+    openCategoryModal(this.dataset.pk, this.querySelector('.cat-name').textContent.trim());
+  });
+});
+
+function openCategoryModal(pk, name) {
+  document.getElementById('modalCategoryName').textContent = name;
+  document.getElementById('modalLoading').classList.remove('d-none');
+  document.getElementById('modalContent').classList.add('d-none');
+  document.getElementById('modalEmpty').classList.add('d-none');
+  document.getElementById('modalSummaryBar').classList.add('d-none');
+
+  bootstrap.Modal.getOrCreateInstance(document.getElementById('categoryProductsModal')).show();
+
+  fetch(`/inventory/categories/${pk}/products/`)
+    .then(r => r.json())
+    .then(data => {
+      document.getElementById('modalLoading').classList.add('d-none');
+
+      if (!data.products.length) {
+        document.getElementById('modalEmpty').classList.remove('d-none');
+        return;
+      }
+
+      // Summary bar
+      const lowCount   = data.products.filter(p => p.is_low_stock).length;
+      const stockValue = data.products.reduce((s, p) => s + p.selling_price * p.quantity, 0);
+      document.getElementById('statTotal').textContent = data.products.length;
+      document.getElementById('statLow').textContent   = lowCount;
+      document.getElementById('statValue').textContent = stockValue.toFixed(2);
+      document.getElementById('modalSummaryBar').classList.remove('d-none');
+
+      // Table rows
+      document.getElementById('modalTableBody').innerHTML = data.products.map(p => {
+        const profit = p.selling_price - p.purchase_price;
+        const margin = p.purchase_price > 0 ? ((profit / p.purchase_price) * 100).toFixed(1) : '0.0';
+        const statusBadge = p.is_low_stock
+          ? `<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>Low Stock</span>`
+          : `<span class="badge bg-success-subtle text-success">OK</span>`;
+        return `
+          <tr>
+            <td><a href="/inventory/${p.id}/" class="fw-semibold text-decoration-none">${p.name}</a></td>
+            <td class="text-muted small">${p.supplier}</td>
+            <td class="text-end">Rs. ${p.purchase_price.toFixed(2)}</td>
+            <td class="text-end">Rs. ${p.selling_price.toFixed(2)}</td>
+            <td class="text-end text-primary">${margin}%</td>
+            <td class="text-center fw-semibold ${p.is_low_stock ? 'text-danger' : ''}">${p.quantity}</td>
+            <td class="text-center">${statusBadge}</td>
+            <td class="text-end">
+              <a href="/inventory/stock/add/?product=${p.id}" class="btn btn-sm btn-outline-success me-1" title="Add Stock"><i class="bi bi-plus-lg"></i></a>
+              <a href="/inventory/${p.id}/edit/" class="btn btn-sm btn-outline-secondary" title="Edit"><i class="bi bi-pencil"></i></a>
+            </td>
+          </tr>`;
+      }).join('');
+
+      document.getElementById('modalContent').classList.remove('d-none');
+    })
+    .catch(() => {
+      document.getElementById('modalLoading').classList.add('d-none');
+      document.getElementById('modalEmpty').classList.remove('d-none');
+    });
+}
+</script>
+{% endblock %}

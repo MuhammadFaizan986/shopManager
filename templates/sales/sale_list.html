@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}Sales{% endblock %}
+{% block page_title %}Sales{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <a href="{% url 'reports:dashboard' %}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i> Back
+  </a>
+</div>
+<div class="card shadow-sm mb-4">
+  <div class="card-body p-4">
+    <form class="d-flex flex-wrap gap-3 align-items-end" method="get">
+      <div>
+        <label class="form-label fw-semibold">From</label>
+        <input type="date" name="date_from" value="{{ date_from }}" class="form-control form-control-lg">
+      </div>
+      <div>
+        <label class="form-label fw-semibold">To</label>
+        <input type="date" name="date_to" value="{{ date_to }}" class="form-control form-control-lg">
+      </div>
+      <div>
+        <label class="form-label fw-semibold">Customer</label>
+        <select name="customer" class="form-select form-select-lg">
+          <option value="">All Customers</option>
+          {% for c in customers %}
+          <option value="{{ c.pk }}" {% if customer_id == c.pk|stringformat:"s" %}selected{% endif %}>{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-outline-secondary btn-lg">Filter</button>
+      <a href="{% url 'sales:sale_create' %}" class="btn btn-primary btn-lg">
+        <i class="bi bi-plus-lg me-1"></i> New Sale
+      </a>
+    </form>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>Invoice</th><th>Date</th><th>Customer</th><th>Items</th><th>Total</th><th>Profit</th><th class="text-center">Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for sale in sales %}
+        <tr>
+          <td><a href="{% url 'sales:sale_detail' sale.pk %}" class="fw-semibold">{{ sale.invoice_number }}</a></td>
+          <td>{{ sale.date|date:"d M Y" }}</td>
+          <td>{{ sale.customer|default:"Walk-in" }}</td>
+          <td>{{ sale.items.count }}</td>
+          <td>Rs. {{ sale.grand_total }}</td>
+          <td class="text-success">Rs. {{ sale.total_profit }}</td>
+          <td class="text-center">
+            <a href="{% url 'sales:invoice_detail' sale.pk %}" class="btn btn-sm btn-outline-secondary me-1" title="Invoice"><i class="bi bi-file-text"></i></a>
+            <a href="{% url 'sales:sale_edit' sale.pk %}" class="btn btn-sm btn-outline-primary me-1" title="Edit"><i class="bi bi-pencil"></i></a>
+            <a href="{% url 'sales:sale_delete' sale.pk %}" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bi bi-trash"></i></a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-center text-muted py-4">No sales found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

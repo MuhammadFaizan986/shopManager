@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}{{ customer.name }}{% endblock %}
+{% block page_title %}Customer Detail{% endblock %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5>{{ customer.name }}</h5>
+        <ul class="list-unstyled text-muted small mt-2">
+          <li><i class="bi bi-telephone me-2"></i>{{ customer.phone|default:"—" }}</li>
+          <li><i class="bi bi-envelope me-2"></i>{{ customer.email|default:"—" }}</li>
+          <li><i class="bi bi-geo-alt me-2"></i>{{ customer.address|default:"—" }}</li>
+        </ul>
+        {% if customer.notes %}<p class="small text-muted">{{ customer.notes }}</p>{% endif %}
+        <p class="fw-bold">Total Spent: Rs. {{ customer.total_spent }}</p>
+        <div class="d-flex gap-2">
+          <a href="{% url 'customers:customer_edit' customer.pk %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+          <a href="{% url 'customers:customer_delete' customer.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-header fw-semibold">Purchase History</div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr><th>Invoice</th><th>Date</th><th>Items</th><th>Total</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for sale in sales %}
+            <tr>
+              <td><a href="{% url 'sales:sale_detail' sale.pk %}">#{{ sale.invoice_number }}</a></td>
+              <td>{{ sale.date|date:"d M Y" }}</td>
+              <td>{{ sale.items.count }}</td>
+              <td>Rs. {{ sale.grand_total }}</td>
+              <td><a href="{% url 'sales:invoice_detail' sale.pk %}" class="btn btn-sm btn-outline-secondary">Invoice</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="text-center text-muted py-3">No purchases yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

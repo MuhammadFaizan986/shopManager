@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+{% block title %}Add Stock{% endblock %}
+{% block page_title %}Add Stock{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <button type="button" class="btn btn-outline-secondary btn-sm" onclick="history.back()">
+    <i class="bi bi-arrow-left me-1"></i> Back
+  </button>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-xl-7 col-lg-9">
+    <form method="post" id="stockAddForm" novalidate>
+      {% csrf_token %}
+
+      <!-- ── Section 1: Product & Quantity ─────────────────────── -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-header py-2 d-flex align-items-center gap-2">
+          <i class="bi bi-boxes text-primary"></i>
+          <span class="fw-semibold">Stock Details</span>
+        </div>
+        <div class="card-body p-4">
+
+          <div class="mb-4">
+            <label for="id_product" class="form-label fw-semibold">
+              Product <span class="text-danger">*</span>
+            </label>
+            <select name="product" id="id_product"
+              class="form-select form-select-lg {% if form.product.errors %}is-invalid{% endif %}"
+              onchange="onProductChange(this.value)">
+              <option value="">— Select a product —</option>
+              {% for p in form.product.field.queryset %}
+              <option value="{{ p.pk }}"
+                {% if form.product.value|stringformat:"s" == p.pk|stringformat:"s" %}selected{% endif %}>
+                {{ p.name }}
+              </option>
+              {% endfor %}
+            </select>
+            {% if form.product.errors %}<div class="invalid-feedback">{{ form.product.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div>
+            <label for="id_quantity" class="form-label fw-semibold">
+              <i class="bi bi-hash me-1 text-primary"></i>Quantity to Add <span class="text-danger">*</span>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text bg-primary-subtle"><i class="bi bi-boxes"></i></span>
+              <input
+                type="number"
+                name="quantity"
+                id="id_quantity"
+                value="{{ form.quantity.value|default:'1' }}"
+                class="form-control form-control-lg text-center {% if form.quantity.errors %}is-invalid{% endif %}"
+                min="1"
+                placeholder="1"
+                oninput="calcMargin()"
+              >
+            </div>
+            {% if form.quantity.errors %}<div class="text-danger small mt-1">{{ form.quantity.errors.0 }}</div>{% endif %}
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Section 2: Pricing ─────────────────────────────────── -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-header py-2 d-flex align-items-center gap-2">
+          <i class="bi bi-currency-dollar text-success"></i>
+          <span class="fw-semibold">Pricing</span>
+          <span class="ms-auto badge bg-warning text-dark small">
+            <i class="bi bi-arrow-repeat me-1"></i>Updates price on all existing stock
+          </span>
+        </div>
+        <div class="card-body p-4">
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="id_purchase_price" class="form-label fw-semibold">
+                <i class="bi bi-arrow-down-circle me-1 text-danger"></i>Purchase Price
+              </label>
+              <div class="input-group">
+                <span class="input-group-text">Rs.</span>
+                <input
+                  type="number"
+                  name="purchase_price"
+                  id="id_purchase_price"
+                  value="{{ form.purchase_price.value|default:'' }}"
+                  class="form-control form-control-lg {% if form.purchase_price.errors %}is-invalid{% endif %}"
+                  step="0.01" min="0" placeholder="0.00"
+                  oninput="calcMargin()"
+                >
+              </div>
+              {% if form.purchase_price.errors %}<div class="text-danger small mt-1">{{ form.purchase_price.errors.0 }}</div>{% endif %}
+              <div class="form-text">What you paid the supplier</div>
+            </div>
+
+            <div class="col-md-6">
+              <label for="id_selling_price" class="form-label fw-semibold">
+                <i class="bi bi-arrow-up-circle me-1 text-success"></i>Selling Price
+              </label>
+              <div class="input-group">
+                <span class="input-group-text">Rs.</span>
+                <input
+                  type="number"
+                  name="selling_price"
+                  id="id_selling_price"
+                  value="{{ form.selling_price.value|default:'' }}"
+                  class="form-control form-control-lg {% if form.selling_price.errors %}is-invalid{% endif %}"
+                  step="0.01" min="0" placeholder="0.00"
+                  oninput="calcMargin()"
+                >
+              </div>
+              {% if form.selling_price.errors %}<div class="text-danger small mt-1">{{ form.selling_price.errors.0 }}</div>{% endif %}
+              <div class="form-text">What you charge the customer</div>
+            </div>
+          </div>
+
+          <!-- Live profit preview -->
+          <div id="profitPreview" class="rounded-3 p-3 d-none" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+            <div class="row text-center g-2">
+              <div class="col-4">
+                <div class="small text-muted">Profit per Unit</div>
+                <div class="fw-bold text-success fs-5" id="profitPerUnit">—</div>
+              </div>
+              <div class="col-4">
+                <div class="small text-muted">Margin %</div>
+                <div class="fw-bold fs-5" id="marginPct">—</div>
+              </div>
+              <div class="col-4">
+                <div class="small text-muted">Batch Value (buy)</div>
+                <div class="fw-bold text-dark fs-5" id="batchValue">—</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Section 3: Note ────────────────────────────────────── -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header py-2 d-flex align-items-center gap-2">
+          <i class="bi bi-chat-left-text text-secondary"></i>
+          <span class="fw-semibold">Note <span class="text-muted fw-normal">(optional)</span></span>
+        </div>
+        <div class="card-body p-4">
+          <input
+            type="text"
+            name="note"
+            id="id_note"
+            value="{{ form.note.value|default:'' }}"
+            class="form-control"
+            placeholder="e.g. Restocked from supplier, batch #123"
+          >
+        </div>
+      </div>
+
+      <!-- ── Actions ─────────────────────────────────────────────── -->
+      <div class="d-flex gap-3">
+        <button type="submit" class="btn btn-success btn-lg px-5">
+          <i class="bi bi-check-lg me-2"></i>Add Stock
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-lg px-4" onclick="history.back()">
+          Cancel
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const allProducts = {{ all_products_json|safe }};
+
+function onProductChange(productId) {
+  const data = allProducts[productId];
+  if (data) {
+    document.getElementById('id_purchase_price').value = data.purchase_price.toFixed(2);
+    document.getElementById('id_selling_price').value  = data.selling_price.toFixed(2);
+    calcMargin();
+  } else {
+    document.getElementById('id_purchase_price').value = '';
+    document.getElementById('id_selling_price').value  = '';
+    document.getElementById('profitPreview').classList.add('d-none');
+  }
+}
+
+function calcMargin() {
+  const buy  = parseFloat(document.getElementById('id_purchase_price').value) || 0;
+  const sell = parseFloat(document.getElementById('id_selling_price').value)  || 0;
+  const qty  = parseInt(document.getElementById('id_quantity').value)          || 0;
+  const preview = document.getElementById('profitPreview');
+
+  if (buy > 0 && sell > 0) {
+    const profit = sell - buy;
+    const margin = ((profit / buy) * 100).toFixed(1);
+    const batch  = (buy * qty).toFixed(2);
+    document.getElementById('profitPerUnit').textContent = `Rs. ${profit.toFixed(2)}`;
+    document.getElementById('marginPct').textContent     = `${margin}%`;
+    document.getElementById('batchValue').textContent    = `Rs. ${batch}`;
+    document.getElementById('marginPct').className = 'fw-bold fs-5 ' + (profit >= 0 ? 'text-primary' : 'text-danger');
+    preview.classList.remove('d-none');
+  } else {
+    preview.classList.add('d-none');
+  }
+}
+
+// Run on load (handles pre-selected product on edit/back)
+calcMargin();
+</script>
+{% endblock %}

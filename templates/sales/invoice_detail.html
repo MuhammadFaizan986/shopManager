@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}Invoice {{ sale.invoice_number }}{% endblock %}
+{% block page_title %}Invoice{% endblock %}
+
+{% block content %}
+<div class="no-print d-flex gap-2 mb-3">
+  <a href="{% url 'sales:sale_detail' sale.pk %}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left me-1"></i> Back</a>
+  <a href="{% url 'sales:invoice_pdf' sale.pk %}" class="btn btn-outline-primary btn-sm">
+    <i class="bi bi-file-pdf me-1"></i> Download PDF
+  </a>
+</div>
+
+<div class="card shadow-sm" style="max-width:700px;margin:auto;" id="invoice">
+  <div class="card-body p-4">
+    <div class="d-flex justify-content-between align-items-start mb-4">
+      <div>
+        <h3 class="fw-bold mb-0">ShopManager</h3>
+        <small class="text-muted">Tax Invoice</small>
+      </div>
+      <div class="text-end">
+        <h5 class="mb-0">{{ sale.invoice_number }}</h5>
+        <small class="text-muted">Date: {{ sale.date|date:"d M Y" }}</small>
+      </div>
+    </div>
+
+    {% if sale.customer %}
+    <div class="mb-3">
+      <strong>Bill To:</strong><br>
+      {{ sale.customer.name }}<br>
+      {% if sale.customer.phone %}<small class="text-muted">{{ sale.customer.phone }}</small>{% endif %}
+    </div>
+    {% endif %}
+
+    <table class="table table-bordered mb-3">
+      <thead class="table-light">
+        <tr><th>#</th><th>Product</th><th class="text-end">Qty</th><th class="text-end">Unit Price</th><th class="text-end">Total</th></tr>
+      </thead>
+      <tbody>
+        {% for item in sale.items.all %}
+        <tr>
+          <td>{{ forloop.counter }}</td>
+          <td>{{ item.product.name }}</td>
+          <td class="text-end">{{ item.quantity }}</td>
+          <td class="text-end">Rs. {{ item.unit_price }}</td>
+          <td class="text-end">Rs. {{ item.line_total }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr><td colspan="4" class="text-end fw-semibold">Subtotal</td><td class="text-end">Rs. {{ sale.subtotal }}</td></tr>
+        {% if sale.discount %}
+        <tr><td colspan="4" class="text-end">Discount</td><td class="text-end">- Rs. {{ sale.discount }}</td></tr>
+        {% endif %}
+        <tr class="table-light"><td colspan="4" class="text-end fw-bold">Grand Total</td><td class="text-end fw-bold">Rs. {{ sale.grand_total }}</td></tr>
+      </tfoot>
+    </table>
+
+    {% if sale.notes %}
+    <p class="small text-muted">Notes: {{ sale.notes }}</p>
+    {% endif %}
+
+    <div class="text-center text-muted small mt-4 border-top pt-3">
+      Thank you for your business!
+    </div>
+  </div>
+</div>
+{% endblock %}

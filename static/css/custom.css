@@ -1,0 +1,50 @@
+/* Sidebar */
+#sidebar {
+  transition: all 0.3s;
+}
+#sidebar.collapsed {
+  min-width: 0 !important;
+  width: 0;
+  overflow: hidden;
+  padding: 0 !important;
+}
+#sidebar .nav-link:hover,
+#sidebar .nav-link.active {
+  background-color: rgba(255,255,255,0.15);
+  border-radius: 6px;
+}
+
+/* Cards */
+.stat-card {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  transition: transform 0.15s;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Tables */
+.table th {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6c757d;
+}
+
+/* Low stock badge */
+.badge-low-stock {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+/* Invoice print styles */
+@media print {
+  #sidebar, nav.navbar, footer, .no-print {
+    display: none !important;
+  }
+  main {
+    padding: 0 !important;
+  }
+}

@@ -1,0 +1,63 @@
+{% extends 'base.html' %}
+{% block title %}Profit &amp; Loss{% endblock %}
+{% block page_title %}Profit &amp; Loss{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm mb-4">
+  <div class="card-body p-4">
+    <form method="get" class="d-flex gap-3 align-items-end flex-wrap">
+      <div>
+        <label class="form-label fw-semibold">From</label>
+        <input type="date" name="date_from" value="{{ date_from }}" class="form-control form-control-lg">
+      </div>
+      <div>
+        <label class="form-label fw-semibold">To</label>
+        <input type="date" name="date_to" value="{{ date_to }}" class="form-control form-control-lg">
+      </div>
+      <button type="submit" class="btn btn-primary btn-lg">Apply</button>
+    </form>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="card stat-card text-white bg-primary"><div class="card-body">
+      <div class="small text-white-50">Total Revenue</div><div class="fs-4 fw-bold">Rs. {{ total_revenue }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-4">
+    <div class="card stat-card text-white bg-danger"><div class="card-body">
+      <div class="small text-white-50">Total Cost</div><div class="fs-4 fw-bold">Rs. {{ total_cost }}</div>
+    </div></div>
+  </div>
+  <div class="col-md-4">
+    <div class="card stat-card text-white {% if gross_profit >= 0 %}bg-success{% else %}bg-danger{% endif %}"><div class="card-body">
+      <div class="small text-white-50">Gross Profit</div><div class="fs-4 fw-bold">Rs. {{ gross_profit }}</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header fw-semibold">Product Breakdown</div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>Product</th><th>Units Sold</th><th>Revenue</th><th>Cost</th><th>Profit</th></tr>
+      </thead>
+      <tbody>
+        {% for row in product_breakdown %}
+        <tr>
+          <td>{{ row.product__name }}</td>
+          <td>{{ row.qty }}</td>
+          <td>Rs. {{ row.revenue }}</td>
+          <td>Rs. {{ row.cost }}</td>
+          <td class="{% if row.profit >= 0 %}text-success{% else %}text-danger{% endif %} fw-semibold">Rs. {{ row.profit }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-center text-muted py-4">No sales in this period.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,377 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <button type="button" class="btn btn-outline-secondary btn-sm" onclick="history.back()">
+    <i class="bi bi-arrow-left me-1"></i> Back
+  </button>
+</div>
+<div class="row justify-content-center">
+  <div class="col-xl-8 col-lg-10">
+
+    <form method="post" id="productForm" novalidate>
+      {% csrf_token %}
+
+      <!-- ── Section 1: Basic Info ───────────────────────────────── -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-header py-2 d-flex align-items-center gap-2">
+          <i class="bi bi-tag text-primary"></i>
+          <span class="fw-semibold">Basic Information</span>
+        </div>
+        <div class="card-body p-4">
+
+          <!-- Product Name -->
+          <div class="mb-4">
+            <label for="id_name" class="form-label fw-semibold">
+              Product Name <span class="text-danger">*</span>
+            </label>
+            <input
+              type="text"
+              name="name"
+              id="id_name"
+              value="{{ form.name.value|default:'' }}"
+              class="form-control form-control-lg {% if form.name.errors %}is-invalid{% endif %}"
+              placeholder="e.g. Blue Ballpoint Pen"
+              autofocus
+            >
+            {% if form.name.errors %}
+            <div class="invalid-feedback">{{ form.name.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <!-- Category + Supplier -->
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Category</label>
+              <div class="input-group">
+                <select name="category" id="id_category" class="form-select {% if form.category.errors %}is-invalid{% endif %}">
+                  <option value="">— Select Category —</option>
+                  {% for cat in categories %}
+                  <option value="{{ cat.pk }}"
+                    {% if form.category.value|stringformat:"s" == cat.pk|stringformat:"s" %}selected{% endif %}>
+                    {{ cat.name }}
+                  </option>
+                  {% endfor %}
+                </select>
+                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addCategoryModal" title="Add new category">
+                  <i class="bi bi-plus-lg"></i>
+                </button>
+              </div>
+              {% if form.category.errors %}<div class="text-danger small mt-1">{{ form.category.errors.0 }}</div>{% endif %}
+              <div class="form-text">
+                <a href="{% url 'inventory:category_list' %}?next={{ request.path }}" class="text-decoration-none small">
+                  <i class="bi bi-grid me-1"></i>Manage all categories
+                </a>
+              </div>
+            </div>
+
+            <div class="col-md-6">
+              <label for="id_supplier" class="form-label fw-semibold">Supplier</label>
+              <select name="supplier" id="id_supplier" class="form-select {% if form.supplier.errors %}is-invalid{% endif %}">
+                <option value="">— No Supplier —</option>
+                {% for sup in form.supplier.field.queryset %}
+                <option value="{{ sup.pk }}"
+                  {% if form.supplier.value|stringformat:"s" == sup.pk|stringformat:"s" %}selected{% endif %}>
+                  {{ sup.name }}
+                </option>
+                {% endfor %}
+              </select>
+              {% if form.supplier.errors %}<div class="text-danger small mt-1">{{ form.supplier.errors.0 }}</div>{% endif %}
+              <div class="form-text">
+                <a href="{% url 'suppliers:supplier_add' %}?next={{ request.path }}" class="text-decoration-none small">
+                  <i class="bi bi-truck me-1"></i>Add new supplier
+                </a>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Section 2: Stock & Pricing ─────────────────────────── -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-header py-2 d-flex align-items-center gap-2">
+          <i class="bi bi-currency-dollar text-success"></i>
+          <span class="fw-semibold">Stock &amp; Pricing</span>
+        </div>
+        <div class="card-body p-4">
+
+          <div class="row g-3 mb-3">
+            <!-- Quantity -->
+            <div class="col-md-4">
+              <label for="id_quantity" class="form-label fw-semibold">
+                <i class="bi bi-boxes me-1 text-primary"></i>Opening Quantity
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-primary-subtle"><i class="bi bi-hash"></i></span>
+                <input
+                  type="number"
+                  name="quantity"
+                  id="id_quantity"
+                  value="{{ form.quantity.value|default:'0' }}"
+                  class="form-control form-control-lg text-center {% if form.quantity.errors %}is-invalid{% endif %}"
+                  min="0"
+                  placeholder="0"
+                >
+              </div>
+              {% if form.quantity.errors %}<div class="text-danger small mt-1">{{ form.quantity.errors.0 }}</div>{% endif %}
+              <div class="form-text">Units currently in stock</div>
+            </div>
+
+            <!-- Purchase Price -->
+            <div class="col-md-4">
+              <label for="id_purchase_price" class="form-label fw-semibold">
+                <i class="bi bi-arrow-down-circle me-1 text-danger"></i>Purchase Price
+              </label>
+              <div class="input-group">
+                <span class="input-group-text">Rs.</span>
+                <input
+                  type="number"
+                  name="purchase_price"
+                  id="id_purchase_price"
+                  value="{{ form.purchase_price.value|default:'' }}"
+                  class="form-control form-control-lg {% if form.purchase_price.errors %}is-invalid{% endif %}"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  oninput="calcMargin()"
+                >
+              </div>
+              {% if form.purchase_price.errors %}<div class="text-danger small mt-1">{{ form.purchase_price.errors.0 }}</div>{% endif %}
+              <div class="form-text">What you pay the supplier</div>
+            </div>
+
+            <!-- Selling Price -->
+            <div class="col-md-4">
+              <label for="id_selling_price" class="form-label fw-semibold">
+                <i class="bi bi-arrow-up-circle me-1 text-success"></i>Selling Price
+              </label>
+              <div class="input-group">
+                <span class="input-group-text">Rs.</span>
+                <input
+                  type="number"
+                  name="selling_price"
+                  id="id_selling_price"
+                  value="{{ form.selling_price.value|default:'' }}"
+                  class="form-control form-control-lg {% if form.selling_price.errors %}is-invalid{% endif %}"
+                  step="0.01"
+                  min="0"
+                  placeholder="0.00"
+                  oninput="calcMargin()"
+                >
+              </div>
+              {% if form.selling_price.errors %}<div class="text-danger small mt-1">{{ form.selling_price.errors.0 }}</div>{% endif %}
+              <div class="form-text">What you charge the customer</div>
+            </div>
+          </div>
+
+          <!-- Live profit preview -->
+          <div id="profitPreview" class="rounded-3 p-3 d-none" style="background:#f0fdf4;border:1px solid #bbf7d0;">
+            <div class="row text-center g-2">
+              <div class="col-4">
+                <div class="small text-muted">Profit per Unit</div>
+                <div class="fw-bold text-success fs-5" id="profitPerUnit">—</div>
+              </div>
+              <div class="col-4">
+                <div class="small text-muted">Margin %</div>
+                <div class="fw-bold text-primary fs-5" id="marginPct">—</div>
+              </div>
+              <div class="col-4">
+                <div class="small text-muted">Stock Value</div>
+                <div class="fw-bold text-dark fs-5" id="stockValue">—</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Section 3: Low Stock Alert ─────────────────────────── -->
+      <div class="card shadow-sm mb-3">
+        <div class="card-header py-2 d-flex align-items-center gap-2">
+          <i class="bi bi-exclamation-triangle text-warning"></i>
+          <span class="fw-semibold">Low Stock Alert</span>
+        </div>
+        <div class="card-body p-4">
+          <div class="row align-items-center g-3">
+            <div class="col-md-4">
+              <label for="id_low_stock_threshold" class="form-label fw-semibold">Alert Threshold</label>
+              <div class="input-group">
+                <span class="input-group-text bg-warning-subtle"><i class="bi bi-bell"></i></span>
+                <input
+                  type="number"
+                  name="low_stock_threshold"
+                  id="id_low_stock_threshold"
+                  value="{{ form.low_stock_threshold.value|default:'10' }}"
+                  class="form-control form-control-lg text-center {% if form.low_stock_threshold.errors %}is-invalid{% endif %}"
+                  min="0"
+                  placeholder="10"
+                >
+              </div>
+              {% if form.low_stock_threshold.errors %}<div class="text-danger small mt-1">{{ form.low_stock_threshold.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-8">
+              <label class="form-label d-block" style="visibility:hidden;">&nbsp;</label>
+              <div class="rounded p-2 small" style="background:#fff8e1;border:1px solid #ffe082;">
+                <i class="bi bi-info-circle me-1 text-warning"></i>
+                A <strong>low stock warning</strong> will appear on the dashboard and product list when stock drops to or below this number.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Section 4: Description ──────────────────────────────── -->
+      <div class="card shadow-sm mb-4">
+        <div class="card-header py-2 d-flex align-items-center gap-2">
+          <i class="bi bi-card-text text-secondary"></i>
+          <span class="fw-semibold">Description <span class="text-muted fw-normal">(optional)</span></span>
+        </div>
+        <div class="card-body p-4">
+          <textarea
+            name="description"
+            id="id_description"
+            class="form-control {% if form.description.errors %}is-invalid{% endif %}"
+            rows="3"
+            placeholder="Add notes about this product — size, colour, specs, or any other details..."
+          >{{ form.description.value|default:'' }}</textarea>
+          {% if form.description.errors %}<div class="invalid-feedback">{{ form.description.errors.0 }}</div>{% endif %}
+        </div>
+      </div>
+
+      <!-- ── Actions ─────────────────────────────────────────────── -->
+      <div class="d-flex gap-3">
+        <button type="submit" class="btn btn-primary btn-lg px-5">
+          <i class="bi bi-check-lg me-2"></i>
+          {% if product %}Update Product{% else %}Save Product{% endif %}
+        </button>
+        <a href="{% url 'inventory:product_list' %}" class="btn btn-outline-secondary btn-lg px-4">
+          Cancel
+        </a>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<!-- ── Add Category Modal ──────────────────────────────────────────────────── -->
+<div class="modal fade" id="addCategoryModal" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header py-2">
+        <h6 class="modal-title"><i class="bi bi-grid me-2"></i>New Category</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <label class="form-label small fw-semibold">Category Name</label>
+        <input type="text" id="newCategoryName" class="form-control" placeholder="e.g. Stationery" autofocus>
+        <div id="categoryError" class="text-danger small mt-1 d-none"></div>
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-primary btn-sm px-4" id="saveCategoryBtn">
+          <i class="bi bi-plus-lg me-1"></i>Add
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* ── Live profit margin preview ─────────────────────────────────── */
+function calcMargin() {
+  const buy  = parseFloat(document.getElementById('id_purchase_price').value) || 0;
+  const sell = parseFloat(document.getElementById('id_selling_price').value)  || 0;
+  const qty  = parseInt(document.getElementById('id_quantity').value) || 0;
+  const preview = document.getElementById('profitPreview');
+
+  if (buy > 0 && sell > 0) {
+    const profit  = sell - buy;
+    const margin  = ((profit / buy) * 100).toFixed(1);
+    const value   = (sell * qty).toFixed(2);
+    document.getElementById('profitPerUnit').textContent = `Rs. ${profit.toFixed(2)}`;
+    document.getElementById('marginPct').textContent     = `${margin}%`;
+    document.getElementById('stockValue').textContent    = `Rs. ${value}`;
+    preview.classList.remove('d-none');
+    // colour the margin based on value
+    const marginEl = document.getElementById('marginPct');
+    marginEl.className = 'fw-bold fs-5 ' + (profit >= 0 ? 'text-primary' : 'text-danger');
+  } else {
+    preview.classList.add('d-none');
+  }
+}
+document.getElementById('id_quantity').addEventListener('input', calcMargin);
+calcMargin(); // run on page load (useful for edit form)
+
+// Auto-select a supplier created via the "Add new supplier" redirect flow
+(function () {
+  const newSupplierId = new URLSearchParams(window.location.search).get('new_supplier');
+  if (newSupplierId) {
+    const sel = document.getElementById('id_supplier');
+    if (sel.querySelector(`option[value="${newSupplierId}"]`)) {
+      sel.value = newSupplierId;
+    }
+    // Clean up the URL without reloading
+    const url = new URL(window.location);
+    url.searchParams.delete('new_supplier');
+    window.history.replaceState({}, '', url);
+  }
+})();
+
+/* ── Quick-add category via AJAX ────────────────────────────────── */
+const modal = document.getElementById('addCategoryModal');
+modal.addEventListener('shown.bs.modal', () => {
+  document.getElementById('newCategoryName').focus();
+});
+modal.addEventListener('hidden.bs.modal', () => {
+  document.getElementById('newCategoryName').value = '';
+  document.getElementById('categoryError').classList.add('d-none');
+});
+
+document.getElementById('newCategoryName').addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); saveCategory(); }
+});
+document.getElementById('saveCategoryBtn').addEventListener('click', saveCategory);
+
+function saveCategory() {
+  const name = document.getElementById('newCategoryName').value.trim();
+  const errEl = document.getElementById('categoryError');
+  if (!name) { errEl.textContent = 'Please enter a category name.'; errEl.classList.remove('d-none'); return; }
+
+  const btn = document.getElementById('saveCategoryBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving…';
+
+  fetch('{% url "inventory:category_add_ajax" %}', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'name=' + encodeURIComponent(name),
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.error) {
+      errEl.textContent = data.error;
+      errEl.classList.remove('d-none');
+      btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-plus-lg me-1"></i>Add';
+    } else {
+      // Add new option and select it
+      const select = document.getElementById('id_category');
+      const opt = new Option(data.name, data.id, true, true);
+      select.add(opt);
+      bootstrap.Modal.getInstance(modal).hide();
+    }
+  })
+  .catch(() => {
+    errEl.textContent = 'Something went wrong. Please try again.';
+    errEl.classList.remove('d-none');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-plus-lg me-1"></i>Add';
+  });
+}
+</script>
+{% endblock %}

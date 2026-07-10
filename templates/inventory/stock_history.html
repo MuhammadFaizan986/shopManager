@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block title %}Stock History{% endblock %}
+{% block page_title %}Stock History{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <button type="button" class="btn btn-outline-secondary btn-sm" onclick="history.back()">
+    <i class="bi bi-arrow-left me-1"></i> Back
+  </button>
+</div>
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <form class="d-flex gap-2" method="get">
+    <select name="product" class="form-select" style="width:220px;">
+      <option value="">All Products</option>
+      {% for p in products %}
+      <option value="{{ p.pk }}" {% if product_id == p.pk|stringformat:"s" %}selected{% endif %}>{{ p.name }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-outline-secondary">Filter</button>
+  </form>
+  <div class="d-flex gap-2">
+    <a href="{% url 'inventory:stock_add' %}" class="btn btn-outline-success">Add Stock</a>
+    <a href="{% url 'inventory:stock_adjust' %}" class="btn btn-outline-warning">Adjust Stock</a>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr><th>Date</th><th>Product</th><th>Reason</th><th>Change</th><th>Before</th><th>After</th><th>Note</th><th>User</th></tr>
+      </thead>
+      <tbody>
+        {% for h in history %}
+        <tr>
+          <td>{{ h.timestamp|date:"d M Y H:i" }}</td>
+          <td><a href="{% url 'inventory:product_detail' h.product.pk %}">{{ h.product.name }}</a></td>
+          <td>{{ h.get_reason_display }}</td>
+          <td class="fw-semibold {% if h.quantity_change > 0 %}text-success{% else %}text-danger{% endif %}">
+            {{ h.quantity_change|stringformat:"+d" }}
+          </td>
+          <td>{{ h.quantity_before }}</td>
+          <td>{{ h.quantity_after }}</td>
+          <td>{{ h.note|default:"—" }}</td>
+          <td>{{ h.user|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center text-muted py-4">No stock history.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

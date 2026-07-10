@@ -1,0 +1,623 @@
+{% extends 'base.html' %}
+{% block title %}Products{% endblock %}
+{% block page_title %}Products{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <a href="{% url 'reports:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i> Back
+  </a>
+</div>
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+  <form class="d-flex gap-2 flex-wrap" method="get">
+    <input type="text" name="q" value="{{ q }}" class="form-control" style="width:200px;" placeholder="Search...">
+    <select name="category" class="form-select" style="width:160px;">
+      <option value="">All Categories</option>
+      {% for cat in categories %}
+      <option value="{{ cat.pk }}" {% if category_id == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+      {% endfor %}
+    </select>
+    <div class="form-check d-flex align-items-center gap-1 ms-1">
+      <input class="form-check-input" type="checkbox" name="low_stock" id="lowStock" value="1" {% if low_stock %}checked{% endif %}>
+      <label class="form-check-label small" for="lowStock">Low Stock Only</label>
+    </div>
+    {% if q or category_id or low_stock %}
+    <a href="{% url 'inventory:product_list' %}" class="btn btn-outline-danger btn-sm d-flex align-items-center">
+      <i class="bi bi-x-lg me-1"></i> Clear
+    </a>
+    {% endif %}
+  </form>
+  <div class="d-flex gap-2">
+    <button type="button" class="btn btn-outline-secondary" id="btnAllHistory"><i class="bi bi-clock-history me-1"></i>Stock History</button>
+    <a href="{% url 'inventory:product_add' %}" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>Add Product</a>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Product</th><th>Category</th><th>Supplier</th>
+          <th>Buy Price</th><th>Sell Price</th><th>Stock</th><th>Status</th><th class="text-center">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for product in products %}
+        <tr>
+          <td>
+            <a href="#" class="fw-semibold text-decoration-none product-link"
+               data-pk="{{ product.pk }}" data-bs-toggle="modal" data-bs-target="#productModal">
+              {{ product.name }}
+            </a>
+          </td>
+          <td class="fw-bold {{ product.category_color }}">{{ product.category|default:"—" }}</td>
+          <td>{{ product.supplier|default:"—" }}</td>
+          <td>Rs. {{ product.purchase_price }}</td>
+          <td>Rs. {{ product.selling_price }}</td>
+          <td>{{ product.quantity }}</td>
+          <td>
+            {% if product.is_low_stock %}
+            <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>Low Stock</span>
+            {% else %}
+            <span class="badge bg-success-subtle text-success">OK</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-outline-secondary me-1 btn-history" data-pk="{{ product.pk }}" title="Stock History"><i class="bi bi-clock-history"></i></button>
+            <button class="btn btn-sm btn-outline-success me-1 btn-stock-add"
+                data-pk="{{ product.pk }}"
+                data-name="{{ product.name }}"
+                data-buy="{{ product.purchase_price }}"
+                data-sell="{{ product.selling_price }}"
+                title="Add Stock"><i class="bi bi-plus-lg"></i></button>
+            <button class="btn btn-sm btn-outline-secondary me-1 btn-edit" data-pk="{{ product.pk }}" title="Edit"><i class="bi bi-pencil"></i></button>
+            <button class="btn btn-sm btn-outline-danger btn-delete" data-pk="{{ product.pk }}" data-name="{{ product.name }}" title="Delete"><i class="bi bi-trash"></i></button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8" class="text-center text-muted py-4">No products found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Product Detail Modal ─────────────────────────────────── -->
+<div class="modal fade" id="productModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="modalProductName">—</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="modalLoading" class="text-center py-4 text-muted">
+          <div class="spinner-border spinner-border-sm me-2"></div> Loading...
+        </div>
+        <div id="modalContent" class="d-none">
+          <div class="row g-3 mb-4">
+            <div class="col-sm-6">
+              <ul class="list-unstyled small mb-0">
+                <li class="mb-2"><span class="text-muted">Category:</span> <strong id="mCategory"></strong></li>
+                <li class="mb-2"><span class="text-muted">Supplier:</span> <strong id="mSupplier"></strong></li>
+                <li class="mb-2"><span class="text-muted">In Stock:</span> <strong id="mStock"></strong></li>
+                <li class="mb-2"><span class="text-muted">Low Stock Alert:</span> <strong id="mThreshold"></strong></li>
+              </ul>
+            </div>
+            <div class="col-sm-6">
+              <ul class="list-unstyled small mb-0">
+                <li class="mb-2"><span class="text-muted">Buy Price:</span> <strong id="mBuyPrice"></strong></li>
+                <li class="mb-2"><span class="text-muted">Sell Price:</span> <strong id="mSellPrice"></strong></li>
+                <li class="mb-2"><span class="text-muted">Margin:</span> <strong id="mMargin"></strong></li>
+                <li class="mb-2" id="mLowStockRow"></li>
+              </ul>
+            </div>
+          </div>
+          <p class="small text-muted fst-italic mb-3" id="mDescription"></p>
+          <h6 class="fw-semibold mb-2">Recent Stock History</h6>
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead class="table-light">
+                <tr><th>Date</th><th>Reason</th><th>Change</th><th>Before</th><th>After</th><th>Note</th><th>User</th></tr>
+              </thead>
+              <tbody id="mHistory"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Stock History Modal ──────────────────────────────────── -->
+<div class="modal fade" id="historyModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold"><i class="bi bi-clock-history me-2"></i><span id="hProductName">—</span></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div id="hLoading" class="text-center py-4 text-muted">
+          <div class="spinner-border spinner-border-sm me-2"></div> Loading...
+        </div>
+        <div id="hContent" class="d-none">
+          <table class="table table-hover table-sm align-middle mb-0">
+            <thead class="table-light sticky-top">
+              <tr><th class="ps-3">Date</th><th>Reason</th><th>Change</th><th>Before</th><th>After</th><th>Note</th><th>User</th></tr>
+            </thead>
+            <tbody id="hBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Edit Product Modal ───────────────────────────────────── -->
+<div class="modal fade" id="editModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold"><i class="bi bi-pencil me-2"></i>Edit Product</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="eLoading" class="text-center py-4 text-muted">
+          <div class="spinner-border spinner-border-sm me-2"></div> Loading...
+        </div>
+        <form id="editForm" class="d-none">
+          <input type="hidden" id="eProductId">
+          <div class="row g-3">
+            <div class="col-sm-12">
+              <label class="form-label small fw-semibold">Product Name</label>
+              <input type="text" id="eName" class="form-control">
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label small fw-semibold">Category</label>
+              <select id="eCategory" class="form-select"></select>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label small fw-semibold">Supplier</label>
+              <select id="eSupplier" class="form-select"></select>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label small fw-semibold">Purchase Price (Rs.)</label>
+              <input type="number" id="ePurchasePrice" class="form-control" step="0.01" min="0">
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label small fw-semibold">Selling Price (Rs.)</label>
+              <input type="number" id="eSellingPrice" class="form-control" step="0.01" min="0">
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label small fw-semibold">Quantity</label>
+              <input type="number" id="eQuantity" class="form-control" min="0">
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label small fw-semibold">Low Stock Threshold</label>
+              <input type="number" id="eThreshold" class="form-control" min="0">
+            </div>
+            <div class="col-12">
+              <label class="form-label small fw-semibold">Description</label>
+              <textarea id="eDescription" class="form-control" rows="3"></textarea>
+            </div>
+          </div>
+          <div id="eErrors" class="alert alert-danger mt-3 d-none small"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary btn-sm" id="eSaveBtn" disabled>
+          <i class="bi bi-check-circle me-1"></i>Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Delete Confirm Modal ─────────────────────────────────── -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title"><i class="bi bi-trash me-2"></i>Delete Product</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete <strong id="dProductName"></strong>?</p>
+        <p class="text-muted small mb-0">This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger btn-sm" id="dConfirmBtn">
+          <i class="bi bi-trash me-1"></i>Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── All Stock History Modal ──────────────────────────────── -->
+<div class="modal fade" id="allHistoryModal" tabindex="-1">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold"><i class="bi bi-clock-history me-2"></i>Stock History</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-0">
+        <div class="px-3 pt-3 pb-2 border-bottom">
+          <select id="ahProductFilter" class="form-select form-select-sm" style="width:220px;">
+            <option value="">All Products</option>
+            {% for product in products %}
+            <option value="{{ product.pk }}">{{ product.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div id="ahLoading" class="text-center py-5 text-muted">
+          <div class="spinner-border spinner-border-sm me-2"></div> Loading…
+        </div>
+        <div id="ahContent" class="d-none px-2">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light sticky-top">
+              <tr><th>Date</th><th>Product</th><th>Reason</th><th>Change</th><th>Before</th><th>After</th><th>Note</th><th>User</th></tr>
+            </thead>
+            <tbody id="ahBody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Add Stock Modal ──────────────────────────────────────── -->
+<div class="modal fade" id="stockAddModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-plus-circle me-2 text-success"></i>Add Stock</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p class="fw-semibold mb-3" id="sProductName"></p>
+        <input type="hidden" id="sProductId">
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Quantity to Add</label>
+          <input type="number" id="sQuantity" class="form-control" min="1" value="1">
+        </div>
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Purchase Price (Rs.)</label>
+            <input type="number" id="sBuyPrice" class="form-control" step="0.01" min="0">
+          </div>
+          <div class="col-6">
+            <label class="form-label small fw-semibold">Selling Price (Rs.)</label>
+            <input type="number" id="sSellPrice" class="form-control" step="0.01" min="0">
+          </div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label small fw-semibold">Note (optional)</label>
+          <input type="text" id="sNote" class="form-control" placeholder="e.g. Restocked from supplier">
+        </div>
+        <div id="sError" class="alert alert-danger d-none small mt-2"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-success btn-sm" id="sConfirmBtn">
+          <i class="bi bi-plus-circle me-1"></i>Add Stock
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const csrfToken = '{{ csrf_token }}';
+
+// Auto-submit search form
+(function () {
+  const form = document.querySelector('form[method="get"]');
+  const qInput = form.querySelector('input[name="q"]');
+  let debounceTimer;
+
+  // Restore focus and cursor position after page reload
+  if (new URLSearchParams(window.location.search).has('q')) {
+    qInput.focus();
+    const len = qInput.value.length;
+    qInput.setSelectionRange(len, len);
+  }
+
+  qInput.addEventListener('input', function () {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => form.submit(), 300);
+  });
+
+  form.querySelector('select[name="category"]').addEventListener('change', () => form.submit());
+  form.querySelector('input[name="low_stock"]').addEventListener('change', () => form.submit());
+})();
+
+function showModal(id) {
+  // Force-clean any stale backdrop / body state from a previous modal
+  document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+  document.body.classList.remove('modal-open');
+  document.body.style.removeProperty('overflow');
+  document.body.style.removeProperty('padding-right');
+  // Dispose any existing instance so we start with a clean slate
+  const el = document.getElementById(id);
+  const inst = bootstrap.Modal.getInstance(el);
+  if (inst) inst.dispose();
+  new bootstrap.Modal(el).show();
+}
+
+function historyRows(history) {
+  if (!history.length) return '<tr><td colspan="7" class="text-center text-muted py-3">No history yet.</td></tr>';
+  return history.map(h => {
+    const cls  = h.quantity_change > 0 ? 'text-success' : 'text-danger';
+    const sign = h.quantity_change > 0 ? '+' : '';
+    return `<tr>
+      <td class="ps-3">${h.timestamp}</td><td>${h.reason}</td>
+      <td class="${cls}">${sign}${h.quantity_change}</td>
+      <td>${h.quantity_before}</td><td>${h.quantity_after}</td>
+      <td>${h.note || '—'}</td><td>${h.user__username || '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Product detail modal ─────────────────────────────────────
+document.querySelectorAll('.product-link').forEach(link => {
+  link.addEventListener('click', function () {
+    const pk = this.dataset.pk;
+    document.getElementById('modalProductName').textContent = '—';
+    document.getElementById('modalLoading').classList.remove('d-none');
+    document.getElementById('modalContent').classList.add('d-none');
+    showModal('productModal');
+
+    fetch(`/inventory/${pk}/json/`)
+      .then(r => r.json())
+      .then(p => {
+        document.getElementById('modalProductName').textContent = p.name;
+        document.getElementById('mCategory').textContent  = p.category;
+        document.getElementById('mSupplier').textContent  = p.supplier;
+        document.getElementById('mStock').textContent     = p.quantity;
+        document.getElementById('mThreshold').textContent = '≤ ' + p.low_stock_threshold;
+        document.getElementById('mBuyPrice').textContent  = 'Rs. ' + p.purchase_price.toFixed(2);
+        document.getElementById('mSellPrice').textContent = 'Rs. ' + p.selling_price.toFixed(2);
+        document.getElementById('mMargin').textContent    = p.profit_margin + '%';
+        document.getElementById('mDescription').textContent = p.description;
+        document.getElementById('mLowStockRow').innerHTML = p.is_low_stock
+          ? '<span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>Low Stock</span>'
+          : '<span class="badge bg-success-subtle text-success">OK</span>';
+        document.getElementById('mHistory').innerHTML = historyRows(p.history);
+        document.getElementById('modalLoading').classList.add('d-none');
+        document.getElementById('modalContent').classList.remove('d-none');
+      })
+      .catch(() => { document.getElementById('modalLoading').textContent = 'Failed to load.'; });
+  });
+});
+
+// ── Stock history modal ──────────────────────────────────────
+document.querySelectorAll('.btn-history').forEach(btn => {
+  btn.addEventListener('click', function () {
+    const pk = this.dataset.pk;
+    document.getElementById('hProductName').textContent = '—';
+    document.getElementById('hLoading').classList.remove('d-none');
+    document.getElementById('hContent').classList.add('d-none');
+    showModal('historyModal');
+
+    fetch(`/inventory/${pk}/json/`)
+      .then(r => r.json())
+      .then(p => {
+        document.getElementById('hProductName').textContent = p.name;
+        document.getElementById('hBody').innerHTML = historyRows(p.history);
+        document.getElementById('hLoading').classList.add('d-none');
+        document.getElementById('hContent').classList.remove('d-none');
+      })
+      .catch(() => { document.getElementById('hLoading').textContent = 'Failed to load.'; });
+  });
+});
+
+// ── Edit modal ───────────────────────────────────────────────
+document.querySelectorAll('.btn-edit').forEach(btn => {
+  btn.addEventListener('click', function () {
+    const pk = this.dataset.pk;
+    // Reset to loading state
+    document.getElementById('eLoading').classList.remove('d-none');
+    document.getElementById('eLoading').textContent = '';
+    document.getElementById('eLoading').innerHTML =
+      '<div class="spinner-border spinner-border-sm me-2"></div> Loading...';
+    document.getElementById('editForm').classList.add('d-none');
+    document.getElementById('eSaveBtn').disabled = true;
+    document.getElementById('eErrors').classList.add('d-none');
+    showModal('editModal');
+
+    fetch(`/inventory/${pk}/edit-ajax/`)
+      .then(r => {
+        if (!r.ok) throw new Error('Server error ' + r.status);
+        return r.json();
+      })
+      .then(p => {
+        document.getElementById('eProductId').value     = p.id;
+        document.getElementById('eName').value           = p.name;
+        document.getElementById('ePurchasePrice').value = p.purchase_price;
+        document.getElementById('eSellingPrice').value  = p.selling_price;
+        document.getElementById('eQuantity').value       = p.quantity;
+        document.getElementById('eThreshold').value      = p.low_stock_threshold;
+        document.getElementById('eDescription').value   = p.description;
+
+        document.getElementById('eCategory').innerHTML =
+          '<option value="">— None —</option>' +
+          p.categories.map(c =>
+            `<option value="${c.id}" ${c.id == p.category_id ? 'selected' : ''}>${c.name}</option>`
+          ).join('');
+
+        document.getElementById('eSupplier').innerHTML =
+          '<option value="">— None —</option>' +
+          p.suppliers.map(s =>
+            `<option value="${s.id}" ${s.id == p.supplier_id ? 'selected' : ''}>${s.name}</option>`
+          ).join('');
+
+        document.getElementById('eLoading').classList.add('d-none');
+        document.getElementById('editForm').classList.remove('d-none');
+        document.getElementById('eSaveBtn').disabled = false;
+      })
+      .catch(err => {
+        document.getElementById('eLoading').innerHTML =
+          `<p class="text-danger mb-0">Failed to load: ${err.message}. Please try again.</p>`;
+      });
+  });
+});
+
+document.getElementById('eSaveBtn').addEventListener('click', function () {
+  const pk   = document.getElementById('eProductId').value;
+  const body = new FormData();
+  body.append('name',                document.getElementById('eName').value);
+  body.append('category',            document.getElementById('eCategory').value);
+  body.append('supplier',            document.getElementById('eSupplier').value);
+  body.append('purchase_price',      document.getElementById('ePurchasePrice').value);
+  body.append('selling_price',       document.getElementById('eSellingPrice').value);
+  body.append('quantity',            document.getElementById('eQuantity').value);
+  body.append('low_stock_threshold', document.getElementById('eThreshold').value);
+  body.append('description',         document.getElementById('eDescription').value);
+  body.append('csrfmiddlewaretoken', csrfToken);
+
+  this.disabled = true;
+  fetch(`/inventory/${pk}/edit-ajax/`, { method: 'POST', body })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        location.reload();
+      } else {
+        const errDiv = document.getElementById('eErrors');
+        errDiv.textContent = Object.values(data.errors).flat().join(' ');
+        errDiv.classList.remove('d-none');
+        document.getElementById('eSaveBtn').disabled = false;
+      }
+    })
+    .catch(() => {
+      document.getElementById('eErrors').textContent = 'An error occurred. Please try again.';
+      document.getElementById('eErrors').classList.remove('d-none');
+      this.disabled = false;
+    });
+});
+
+// ── Delete modal ─────────────────────────────────────────────
+let pendingDeletePk = null;
+document.querySelectorAll('.btn-delete').forEach(btn => {
+  btn.addEventListener('click', function () {
+    pendingDeletePk = this.dataset.pk;
+    document.getElementById('dProductName').textContent = this.dataset.name;
+    showModal('deleteModal');
+  });
+});
+
+document.getElementById('dConfirmBtn').addEventListener('click', function () {
+  if (!pendingDeletePk) return;
+  this.disabled = true;
+  fetch(`/inventory/${pendingDeletePk}/delete-ajax/`, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': csrfToken },
+  })
+    .then(r => r.json())
+    .then(data => { if (data.ok) location.reload(); })
+    .catch(() => { this.disabled = false; });
+});
+
+// ── All stock history modal ──────────────────────────────────
+function loadAllHistory(productId) {
+  document.getElementById('ahLoading').classList.remove('d-none');
+  document.getElementById('ahContent').classList.add('d-none');
+  const url = '/inventory/stock/history/json/' + (productId ? `?product=${productId}` : '');
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      const rows = data.history.length
+        ? data.history.map(h => {
+            const cls  = h.quantity_change > 0 ? 'text-success' : 'text-danger';
+            const sign = h.quantity_change > 0 ? '+' : '';
+            return `<tr>
+              <td>${h.timestamp}</td>
+              <td>${h.product}</td><td>${h.reason}</td>
+              <td class="fw-semibold ${cls}">${sign}${h.quantity_change}</td>
+              <td>${h.quantity_before}</td><td>${h.quantity_after}</td>
+              <td>${h.note || '—'}</td><td>${h.user || '—'}</td>
+            </tr>`;
+          }).join('')
+        : '<tr><td colspan="8" class="text-center text-muted py-4">No stock history found.</td></tr>';
+      document.getElementById('ahBody').innerHTML = rows;
+      document.getElementById('ahLoading').classList.add('d-none');
+      document.getElementById('ahContent').classList.remove('d-none');
+    })
+    .catch(() => {
+      document.getElementById('ahLoading').textContent = 'Failed to load.';
+    });
+}
+
+document.getElementById('btnAllHistory').addEventListener('click', function () {
+  document.getElementById('ahProductFilter').value = '';
+  showModal('allHistoryModal');
+  loadAllHistory('');
+});
+
+document.getElementById('ahProductFilter').addEventListener('change', function () {
+  loadAllHistory(this.value);
+});
+
+// ── Add Stock modal ──────────────────────────────────────────
+document.querySelectorAll('.btn-stock-add').forEach(btn => {
+  btn.addEventListener('click', function () {
+    document.getElementById('sProductId').value   = this.dataset.pk;
+    document.getElementById('sProductName').textContent = this.dataset.name;
+    document.getElementById('sBuyPrice').value    = parseFloat(this.dataset.buy).toFixed(2);
+    document.getElementById('sSellPrice').value   = parseFloat(this.dataset.sell).toFixed(2);
+    document.getElementById('sQuantity').value    = 1;
+    document.getElementById('sNote').value        = '';
+    document.getElementById('sError').classList.add('d-none');
+    document.getElementById('sConfirmBtn').disabled = false;
+    showModal('stockAddModal');
+  });
+});
+
+document.getElementById('sConfirmBtn').addEventListener('click', function () {
+  const errDiv = document.getElementById('sError');
+  errDiv.classList.add('d-none');
+  this.disabled = true;
+
+  const body = new FormData();
+  body.append('product_id',     document.getElementById('sProductId').value);
+  body.append('quantity',       document.getElementById('sQuantity').value);
+  body.append('purchase_price', document.getElementById('sBuyPrice').value);
+  body.append('selling_price',  document.getElementById('sSellPrice').value);
+  body.append('note',           document.getElementById('sNote').value);
+  body.append('csrfmiddlewaretoken', csrfToken);
+
+  fetch('/inventory/stock/add-ajax/', { method: 'POST', body })
+    .then(r => r.json())
+    .then(data => {
+      if (data.ok) {
+        location.reload();
+      } else {
+        errDiv.textContent = data.error || 'Something went wrong.';
+        errDiv.classList.remove('d-none');
+        this.disabled = false;
+      }
+    })
+    .catch(() => {
+      errDiv.textContent = 'Request failed. Please try again.';
+      errDiv.classList.remove('d-none');
+      this.disabled = false;
+    });
+});
+</script>
+{% endblock %}

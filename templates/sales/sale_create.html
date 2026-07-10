@@ -1,0 +1,264 @@
+{% extends 'base.html' %}
+{% block title %}New Sale{% endblock %}
+{% block page_title %}New Sale{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <a href="{% url 'sales:sale_list' %}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i> Back
+  </a>
+</div>
+<form method="post" id="saleForm">
+  {% csrf_token %}
+  <input type="hidden" name="items_json" id="itemsJson" value="[]">
+
+  <div class="row g-4">
+    <!-- Left: product picker -->
+    <div class="col-md-5">
+      <div class="card shadow-sm">
+        <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+          <span id="pickerTitle">Add Product</span>
+          <span class="badge bg-secondary d-none" id="editingBadge">Editing</span>
+        </div>
+        <div class="card-body">
+          <div class="mb-2">
+            <label class="form-label small">Product</label>
+            <select id="productSelect" class="form-select">
+              <option value="">— Select product —</option>
+              {% for p in products %}
+              <option value="{{ p.pk }}" data-price="{{ p.selling_price }}" data-stock="{{ p.quantity }}">
+                {{ p.name }} (Stock: {{ p.quantity }})
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-2">
+            <label class="form-label small">Unit Price (Rs.)</label>
+            <input type="number" id="unitPrice" class="form-control" step="0.01" min="0">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small">Quantity</label>
+            <input type="number" id="quantity" class="form-control" min="1" value="1">
+          </div>
+          <button type="button" id="actionBtn" class="btn btn-success w-100 mb-2" onclick="handleAction()">
+            <i class="bi bi-plus-circle me-1"></i> Add to Sale
+          </button>
+          <button type="button" id="cancelEditBtn" class="btn btn-outline-secondary w-100 d-none" onclick="cancelEdit()">
+            <i class="bi bi-x-circle me-1"></i> Cancel Edit
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: sale summary -->
+    <div class="col-md-7">
+      <div class="card shadow-sm">
+        <div class="card-header fw-semibold">
+          Sale Items
+          <span class="text-muted small fw-normal ms-1">(click a row to edit)</span>
+        </div>
+        <div class="table-responsive">
+          <table class="table align-middle mb-0" id="itemsTable">
+            <thead class="table-light">
+              <tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th><th></th></tr>
+            </thead>
+            <tbody id="itemsBody">
+              <tr id="emptyRow"><td colspan="5" class="text-center text-muted py-3">No items yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card-footer">
+          <div class="row g-2">
+            <div class="col-md-4">
+              <label class="form-label small">Customer</label>
+              <select name="customer" class="form-select form-select-sm">
+                <option value="">Walk-in Customer</option>
+                {% for c in customers %}
+                <option value="{{ c.pk }}">{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small">Discount (Rs.)</label>
+              <input type="number" name="discount" id="discountInput" class="form-control form-control-sm" value="0" min="0" step="0.01" oninput="updateTotals()">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small">Notes</label>
+              <input type="text" name="notes" class="form-control form-control-sm">
+            </div>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <div>
+              <span class="text-muted small">Subtotal: <strong id="subtotal">Rs. 0.00</strong></span><br>
+              <span class="text-muted small">Discount: <strong id="discountDisplay">Rs. 0.00</strong></span><br>
+              <span class="fs-5 fw-bold">Total: <span id="grandTotal">Rs. 0.00</span></span>
+            </div>
+            <button type="submit" class="btn btn-primary btn-lg" id="submitBtn" disabled>
+              <i class="bi bi-check-circle me-1"></i> Complete Sale
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const productData = {};
+{% for p in products %}
+productData["{{ p.pk }}"] = { name: "{{ p.name|escapejs }}", price: {{ p.selling_price }}, stock: {{ p.quantity }} };
+{% endfor %}
+
+let saleItems = [];
+let editingIdx = -1;
+
+const productSelect = document.getElementById('productSelect');
+const unitPriceInput = document.getElementById('unitPrice');
+const quantityInput = document.getElementById('quantity');
+
+productSelect.addEventListener('change', function() {
+  if (editingIdx >= 0) return;
+  const opt = this.selectedOptions[0];
+  if (opt && opt.value) {
+    unitPriceInput.value = parseFloat(opt.dataset.price).toFixed(2);
+    quantityInput.max = opt.dataset.stock;
+  }
+});
+
+function editItem(idx) {
+  editingIdx = idx;
+  const item = saleItems[idx];
+  const data = productData[item.product_id];
+
+  productSelect.value = item.product_id;
+  productSelect.disabled = true;
+  unitPriceInput.value = parseFloat(item.unit_price).toFixed(2);
+  quantityInput.value = item.quantity;
+  if (data) quantityInput.max = data.stock;
+
+  document.getElementById('pickerTitle').textContent = 'Edit Item';
+  document.getElementById('editingBadge').classList.remove('d-none');
+  document.getElementById('actionBtn').innerHTML = '<i class="bi bi-pencil-check me-1"></i> Update Item';
+  document.getElementById('actionBtn').className = 'btn btn-primary w-100 mb-2';
+  document.getElementById('cancelEditBtn').classList.remove('d-none');
+
+  renderItems();
+}
+
+function cancelEdit() {
+  editingIdx = -1;
+  productSelect.value = '';
+  productSelect.disabled = false;
+  unitPriceInput.value = '';
+  quantityInput.value = '1';
+
+  document.getElementById('pickerTitle').textContent = 'Add Product';
+  document.getElementById('editingBadge').classList.add('d-none');
+  document.getElementById('actionBtn').innerHTML = '<i class="bi bi-plus-circle me-1"></i> Add to Sale';
+  document.getElementById('actionBtn').className = 'btn btn-success w-100 mb-2';
+  document.getElementById('cancelEditBtn').classList.add('d-none');
+
+  renderItems();
+}
+
+function handleAction() {
+  if (editingIdx >= 0) {
+    updateItem();
+  } else {
+    addItem();
+  }
+}
+
+function updateItem() {
+  const item = saleItems[editingIdx];
+  const qty = parseInt(quantityInput.value);
+  const price = parseFloat(unitPriceInput.value);
+
+  if (qty < 1 || isNaN(qty)) { alert('Enter a valid quantity.'); return; }
+  if (price < 0 || isNaN(price)) { alert('Enter a valid price.'); return; }
+
+  const data = productData[item.product_id];
+  if (qty > data.stock) {
+    alert(`Only ${data.stock} units available for ${item.product_name}.`);
+    return;
+  }
+
+  item.quantity = qty;
+  item.unit_price = price;
+  cancelEdit();
+}
+
+function addItem() {
+  const opt = productSelect.selectedOptions[0];
+  if (!opt || !opt.value) { alert('Select a product.'); return; }
+  const productId = opt.value;
+  const data = productData[productId];
+  const qty = parseInt(quantityInput.value);
+  const price = parseFloat(unitPriceInput.value);
+
+  if (qty < 1 || isNaN(qty)) { alert('Enter a valid quantity.'); return; }
+  if (price < 0 || isNaN(price)) { alert('Enter a valid price.'); return; }
+
+  const existing = saleItems.find(i => i.product_id === productId);
+  const currentQty = existing ? existing.quantity : 0;
+  if (currentQty + qty > data.stock) {
+    alert(`Only ${data.stock} units available (${currentQty} already in sale).`);
+    return;
+  }
+
+  if (existing) {
+    existing.quantity += qty;
+  } else {
+    saleItems.push({ product_id: productId, product_name: data.name, quantity: qty, unit_price: price });
+  }
+  renderItems();
+}
+
+function removeItem(idx) {
+  if (editingIdx === idx) cancelEdit();
+  else if (editingIdx > idx) editingIdx--;
+  saleItems.splice(idx, 1);
+  renderItems();
+}
+
+function renderItems() {
+  const tbody = document.getElementById('itemsBody');
+  tbody.innerHTML = '';
+
+  if (saleItems.length === 0) {
+    tbody.innerHTML = '<tr id="emptyRow"><td colspan="5" class="text-center text-muted py-3">No items yet.</td></tr>';
+  } else {
+    saleItems.forEach((item, idx) => {
+      const isEditing = editingIdx === idx;
+      tbody.insertAdjacentHTML('beforeend', `<tr
+          class="${isEditing ? 'table-primary' : ''}"
+          style="cursor:pointer;"
+          onclick="editItem(${idx})">
+        <td>${item.product_name}${isEditing ? ' <i class="bi bi-pencil text-primary small"></i>' : ''}</td>
+        <td>${item.quantity}</td>
+        <td>Rs. ${parseFloat(item.unit_price).toFixed(2)}</td>
+        <td>Rs. ${(item.quantity * item.unit_price).toFixed(2)}</td>
+        <td><button type="button" class="btn btn-sm btn-outline-danger"
+            onclick="event.stopPropagation();removeItem(${idx})">
+          <i class="bi bi-x"></i>
+        </button></td>
+      </tr>`);
+    });
+  }
+  document.getElementById('itemsJson').value = JSON.stringify(saleItems);
+  updateTotals();
+}
+
+function updateTotals() {
+  const subtotal = saleItems.reduce((s, i) => s + i.quantity * i.unit_price, 0);
+  const discount = parseFloat(document.getElementById('discountInput').value) || 0;
+  const grand = Math.max(0, subtotal - discount);
+  document.getElementById('subtotal').textContent = `Rs. ${subtotal.toFixed(2)}`;
+  document.getElementById('discountDisplay').textContent = `Rs. ${discount.toFixed(2)}`;
+  document.getElementById('grandTotal').textContent = `Rs. ${grand.toFixed(2)}`;
+  document.getElementById('submitBtn').disabled = saleItems.length === 0;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,471 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard — Business Overview{% endblock %}
+
+{% block content %}
+<div class="d-flex gap-2 mb-5">
+  <a href="{% url 'sales:sale_create' %}" class="btn btn-primary btn-lg">
+    <i class="bi bi-plus-circle me-2"></i> New Sale
+  </a>
+  <a href="{% url 'inventory:product_list' %}" class="btn btn-outline-primary btn-lg">
+    <i class="bi bi-box-seam me-2"></i> Manage Inventory
+  </a>
+</div>
+<!-- Sales Revenue Section -->
+<div class="mb-5">
+  <h6 class="text-muted fw-semibold mb-3">SALES OVERVIEW</h6>
+  <div class="row g-3">
+    <!-- Daily -->
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm h-100 cursor-pointer border-start border-4" role="button" data-bs-toggle="modal" data-bs-target="#dailyModal" style="cursor:pointer; transition: transform 0.2s; border-color: #0D6EFD !important; background: linear-gradient(135deg, rgba(13, 110, 253, 0.06) 0%, rgba(13, 110, 253, 0.02) 100%);">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <div class="text-muted small">Today's Sales</div>
+              <div class="fs-3 fw-bold mt-1" style="color: #0D6EFD;">Rs. {{ daily_revenue|default:"0" }}</div>
+            </div>
+            <div class="p-2 rounded" style="background-color: rgba(13, 110, 253, 0.1);">
+              <i class="bi bi-calendar-day fs-5" style="color: #0D6EFD;"></i>
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge" style="background-color: #0D6EFD;">{{ daily_orders }} order{{ daily_orders|pluralize }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weekly -->
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm h-100 cursor-pointer border-start border-4" role="button" data-bs-toggle="modal" data-bs-target="#weeklyModal" style="cursor:pointer; transition: transform 0.2s; border-color: #198754 !important; background: linear-gradient(135deg, rgba(25, 135, 84, 0.06) 0%, rgba(25, 135, 84, 0.02) 100%);">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <div class="text-muted small">This Week's Sales</div>
+              <div class="fs-3 fw-bold mt-1" style="color: #198754;">Rs. {{ weekly_revenue|default:"0" }}</div>
+            </div>
+            <div class="p-2 rounded" style="background-color: rgba(25, 135, 84, 0.1);">
+              <i class="bi bi-calendar-week fs-5" style="color: #198754;"></i>
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge" style="background-color: #198754;">{{ weekly_orders }} order{{ weekly_orders|pluralize }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Monthly -->
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm h-100 cursor-pointer border-start border-4" role="button" data-bs-toggle="modal" data-bs-target="#monthlyModal" style="cursor:pointer; transition: transform 0.2s; border-color: #0DCAF0 !important; background: linear-gradient(135deg, rgba(13, 202, 240, 0.06) 0%, rgba(13, 202, 240, 0.02) 100%);">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <div class="text-muted small">This Month's Sales</div>
+              <div class="fs-3 fw-bold mt-1" style="color: #0DCAF0;">Rs. {{ monthly_revenue|default:"0" }}</div>
+            </div>
+            <div class="p-2 rounded" style="background-color: rgba(13, 202, 240, 0.1);">
+              <i class="bi bi-calendar-month fs-5" style="color: #0DCAF0;"></i>
+            </div>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge" style="background-color: #0DCAF0; color: #000;">{{ monthly_orders }} order{{ monthly_orders|pluralize }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Business Metrics Section -->
+<div class="mb-5">
+  <h6 class="text-muted fw-semibold mb-3">BUSINESS METRICS</h6>
+  <div class="row g-3">
+    <!-- Total Inventory Value - Purple -->
+    <div class="col-md-3 col-sm-6">
+      <a href="{% url 'inventory:product_list' %}" class="text-decoration-none">
+        <div class="card border-0 shadow-sm h-100 border-start border-4" style="border-color: #6F42C1 !important; background: linear-gradient(135deg, rgba(111, 66, 193, 0.06) 0%, rgba(111, 66, 193, 0.02) 100%);">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="text-muted small">Inventory Value</div>
+                <div class="fs-4 fw-bold mt-2" style="color: #6F42C1;">Rs. {{ total_inventory_value|default:"0" }}</div>
+              </div>
+              <i class="bi bi-box-seam fs-5" style="color: #6F42C1; opacity: 0.7;"></i>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Total Products - Indigo -->
+    <div class="col-md-3 col-sm-6">
+      <a href="{% url 'inventory:product_list' %}" class="text-decoration-none">
+        <div class="card border-0 shadow-sm h-100 border-start border-4" style="border-color: #6610F2 !important; background: linear-gradient(135deg, rgba(102, 16, 242, 0.06) 0%, rgba(102, 16, 242, 0.02) 100%);">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="text-muted small">Total Products</div>
+                <div class="fs-4 fw-bold mt-2" style="color: #6610F2;">{{ total_products }}</div>
+              </div>
+              <i class="bi bi-box2 fs-5" style="color: #6610F2; opacity: 0.7;"></i>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Total Customers - Teal -->
+    <div class="col-md-3 col-sm-6">
+      <a href="{% url 'customers:customer_list' %}" class="text-decoration-none">
+        <div class="card border-0 shadow-sm h-100 border-start border-4" style="border-color: #20C997 !important; background: linear-gradient(135deg, rgba(32, 201, 151, 0.06) 0%, rgba(32, 201, 151, 0.02) 100%);">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="text-muted small">Total Customers</div>
+                <div class="fs-4 fw-bold mt-2" style="color: #20C997;">{{ total_customers }}</div>
+              </div>
+              <i class="bi bi-people fs-5" style="color: #20C997; opacity: 0.7;"></i>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Low Stock Alert - Orange -->
+    <div class="col-md-3 col-sm-6">
+      {% if low_stock_count > 0 %}
+      <a href="{% url 'inventory:product_list' %}" class="text-decoration-none">
+        <div class="card border-0 shadow-sm h-100 border-start border-4" style="border-color: #FF9800 !important; background: linear-gradient(135deg, rgba(255, 152, 0, 0.08) 0%, rgba(255, 152, 0, 0.03) 100%);">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="text-muted small">Low Stock Alert</div>
+                <div class="fs-4 fw-bold mt-2" style="color: #FF9800;">{{ low_stock_count }}</div>
+              </div>
+              <i class="bi bi-exclamation-triangle fs-5" style="color: #FF9800; opacity: 0.85;"></i>
+            </div>
+          </div>
+        </div>
+      </a>
+      {% else %}
+      <div class="card border-0 shadow-sm h-100 border-start border-4" style="border-color: #28A745 !important; background: linear-gradient(135deg, rgba(40, 167, 69, 0.06) 0%, rgba(40, 167, 69, 0.02) 100%);">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <div class="text-muted small">Inventory Status</div>
+              <div class="fs-4 fw-bold mt-2" style="color: #28A745;">✓ Healthy</div>
+            </div>
+            <i class="bi bi-check-circle fs-5" style="color: #28A745; opacity: 0.7;"></i>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Actions Section -->
+<div class="row g-4">
+  <!-- Recent sales -->
+  <div class="col-lg-7">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center fw-semibold border-bottom">
+        <div>
+          <i class="bi bi-receipt me-2 text-primary"></i>Recent Sales
+        </div>
+        <a href="{% url 'sales:sale_list' %}" class="btn btn-sm btn-outline-secondary">View All</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Invoice</th>
+              <th>Customer</th>
+              <th>Date</th>
+              <th class="text-end pe-3">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sale in recent_sales %}
+            <tr class="cursor-pointer" role="button" onclick="window.location.href='{% url 'sales:sale_detail' sale.pk %}'">
+              <td class="ps-3">
+                <a href="{% url 'sales:sale_detail' sale.pk %}" class="text-decoration-none fw-semibold">
+                  {{ sale.invoice_number }}
+                </a>
+              </td>
+              <td>{{ sale.customer|default:"Walk-in" }}</td>
+              <td class="text-muted small">{{ sale.date|date:"d M Y" }}</td>
+              <td class="text-end pe-3 fw-semibold">Rs. {{ sale.grand_total }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4" class="text-center text-muted py-4">
+                <i class="bi bi-inbox opacity-50 me-2"></i>No sales yet
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Low stock alerts -->
+  <div class="col-lg-5">
+    <div class="card border-0 shadow-sm">
+      <div class="card-header bg-white fw-semibold border-bottom d-flex align-items-center gap-2">
+        {% if low_stock_count > 0 %}
+        <span class="badge bg-warning text-dark">{{ low_stock_count }}</span>
+        <i class="bi bi-exclamation-triangle text-warning me-2"></i> Low Stock Alert
+        {% else %}
+        <i class="bi bi-check-circle text-success me-2"></i> Inventory Status
+        {% endif %}
+      </div>
+      <div class="table-responsive">
+        {% if low_stock_products %}
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th class="ps-3">Product</th>
+              <th class="text-center">Stock</th>
+              <th class="text-center pe-3">Min</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in low_stock_products %}
+            <tr class="cursor-pointer" onclick="window.location.href='{% url 'inventory:product_detail' p.pk %}'">
+              <td class="ps-3">
+                <a href="{% url 'inventory:product_detail' p.pk %}" class="text-decoration-none small">{{ p.name }}</a>
+              </td>
+              <td class="text-center text-danger fw-bold">{{ p.quantity }}</td>
+              <td class="text-center pe-3 small">{{ p.low_stock_threshold }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% if low_stock_count > 5 %}
+        <div class="card-footer small text-muted text-center">
+          + {{ low_stock_count|add:"-5" }} more product{{ low_stock_count|add:"-5"|pluralize }}
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="card-body text-center py-5">
+          <div class="text-success fs-1 mb-3">✓</div>
+          <p class="text-muted mb-0">All products are well-stocked</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Daily Modal -->
+<div class="modal fade" id="dailyModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content border-0">
+      <div class="modal-header border-0" style="background: linear-gradient(135deg, #0D6EFD 0%, rgba(13, 110, 253, 0.9) 100%);">
+        <div>
+          <h5 class="modal-title text-white mb-1"><i class="bi bi-calendar-day me-2"></i>Today's Sales</h5>
+          <small class="text-white-50">{{ "now"|date:"d M Y" }}</small>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <!-- Summary Section -->
+      {% if daily_sales %}
+      <div style="background: linear-gradient(135deg, rgba(13, 110, 253, 0.06) 0%, rgba(13, 110, 253, 0.02) 100%); border-bottom: 1px solid rgba(13, 110, 253, 0.1);">
+        <div class="p-4">
+          <div class="row g-3">
+            <div class="col-4 text-center">
+              <div class="text-muted small mb-1">Total Orders</div>
+              <div class="fs-4 fw-bold" style="color: #0D6EFD;">{{ daily_orders }}</div>
+            </div>
+            <div class="col-4 text-center">
+              <div class="text-muted small mb-1">Total Items</div>
+              <div class="fs-4 fw-bold" style="color: #0D6EFD;">{{ daily_items }}</div>
+            </div>
+            <div class="col-4 text-center">
+              <div class="text-muted small mb-1">Total Revenue</div>
+              <div class="fs-5 fw-bold" style="color: #0D6EFD;">Rs. {{ daily_revenue }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="modal-body p-4">
+        {% if daily_sales %}
+        <table class="table table-hover align-middle mb-0">
+          <thead style="background: rgba(13, 110, 253, 0.05);">
+            <tr>
+              <th class="py-3 ps-3 text-muted small fw-semibold">Invoice</th>
+              <th class="py-3 text-muted small fw-semibold">Customer</th>
+              <th class="py-3 text-center text-muted small fw-semibold">Items</th>
+              <th class="py-3 pe-3 text-end text-muted small fw-semibold">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sale in daily_sales %}
+            <tr class="cursor-pointer" style="transition: all 0.2s;" onclick="window.location.href='{% url 'sales:sale_detail' sale.pk %}'">
+              <td class="py-3 ps-3"><a href="{% url 'sales:sale_detail' sale.pk %}" class="text-decoration-none fw-semibold" style="color: #0D6EFD;">{{ sale.invoice_number }}</a></td>
+              <td class="py-3">{{ sale.customer|default:"Walk-in" }}</td>
+              <td class="py-3 text-center"><span class="badge bg-light text-dark">{{ sale.items.count }}</span></td>
+              <td class="py-3 pe-3 text-end fw-bold">Rs. {{ sale.grand_total }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-5">
+          <i class="bi bi-inbox fs-1 text-muted opacity-50 mb-3 d-block"></i>
+          <p class="text-muted">No sales recorded today</p>
+          <small class="text-muted">Sales will appear here when transactions are made</small>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Weekly Modal -->
+<div class="modal fade" id="weeklyModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content border-0">
+      <div class="modal-header border-0" style="background: linear-gradient(135deg, #198754 0%, rgba(25, 135, 84, 0.9) 100%);">
+        <div>
+          <h5 class="modal-title text-white mb-1"><i class="bi bi-calendar-week me-2"></i>This Week's Sales</h5>
+          <small class="text-white-50">Last 7 days</small>
+        </div>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <!-- Summary Section -->
+      {% if weekly_sales %}
+      <div style="background: linear-gradient(135deg, rgba(25, 135, 84, 0.06) 0%, rgba(25, 135, 84, 0.02) 100%); border-bottom: 1px solid rgba(25, 135, 84, 0.1);">
+        <div class="p-4">
+          <div class="row g-3">
+            <div class="col-4 text-center">
+              <div class="text-muted small mb-1">Total Orders</div>
+              <div class="fs-4 fw-bold" style="color: #198754;">{{ weekly_orders }}</div>
+            </div>
+            <div class="col-4 text-center">
+              <div class="text-muted small mb-1">Total Items</div>
+              <div class="fs-4 fw-bold" style="color: #198754;">{{ weekly_items }}</div>
+            </div>
+            <div class="col-4 text-center">
+              <div class="text-muted small mb-1">Total Revenue</div>
+              <div class="fs-5 fw-bold" style="color: #198754;">Rs. {{ weekly_revenue }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="modal-body p-4">
+        {% if weekly_sales %}
+        <table class="table table-hover align-middle mb-0">
+          <thead style="background: rgba(25, 135, 84, 0.05);">
+            <tr>
+              <th class="py-3 ps-3 text-muted small fw-semibold">Invoice</th>
+              <th class="py-3 text-muted small fw-semibold">Customer</th>
+              <th class="py-3 text-muted small fw-semibold">Date</th>
+              <th class="py-3 text-center text-muted small fw-semibold">Items</th>
+              <th class="py-3 pe-3 text-end text-muted small fw-semibold">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sale in weekly_sales %}
+            <tr class="cursor-pointer" style="transition: all 0.2s;" onclick="window.location.href='{% url 'sales:sale_detail' sale.pk %}'">
+              <td class="py-3 ps-3"><a href="{% url 'sales:sale_detail' sale.pk %}" class="text-decoration-none fw-semibold" style="color: #198754;">{{ sale.invoice_number }}</a></td>
+              <td class="py-3">{{ sale.customer|default:"Walk-in" }}</td>
+              <td class="py-3 text-muted small">{{ sale.date|date:"d M" }}</td>
+              <td class="py-3 text-center"><span class="badge bg-light text-dark">{{ sale.items.count }}</span></td>
+              <td class="py-3 pe-3 text-end fw-bold">Rs. {{ sale.grand_total }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-5">
+          <i class="bi bi-inbox fs-1 text-muted opacity-50 mb-3 d-block"></i>
+          <p class="text-muted">No sales recorded this week</p>
+          <small class="text-muted">Sales will appear here when transactions are made</small>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Monthly Modal -->
+<div class="modal fade" id="monthlyModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content border-0">
+      <div class="modal-header border-0" style="background: linear-gradient(135deg, #0DCAF0 0%, rgba(13, 202, 240, 0.9) 100%);">
+        <div>
+          <h5 class="modal-title text-dark mb-1"><i class="bi bi-calendar-month me-2"></i>This Month's Sales</h5>
+          <small class="text-dark-50">Current month</small>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <!-- Summary Section -->
+      {% if monthly_sales %}
+      <div style="background: linear-gradient(135deg, rgba(13, 202, 240, 0.06) 0%, rgba(13, 202, 240, 0.02) 100%); border-bottom: 1px solid rgba(13, 202, 240, 0.1);">
+        <div class="p-4">
+          <div class="row g-3">
+            <div class="col-4 text-center">
+              <div class="text-muted small mb-1">Total Orders</div>
+              <div class="fs-4 fw-bold" style="color: #0DCAF0;">{{ monthly_orders }}</div>
+            </div>
+            <div class="col-4 text-center">
+              <div class="text-muted small mb-1">Total Items</div>
+              <div class="fs-4 fw-bold" style="color: #0DCAF0;">{{ monthly_items }}</div>
+            </div>
+            <div class="col-4 text-center">
+              <div class="text-muted small mb-1">Total Revenue</div>
+              <div class="fs-5 fw-bold" style="color: #0DCAF0;">Rs. {{ monthly_revenue }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="modal-body p-4">
+        {% if monthly_sales %}
+        <table class="table table-hover align-middle mb-0">
+          <thead style="background: rgba(13, 202, 240, 0.05);">
+            <tr>
+              <th class="py-3 ps-3 text-muted small fw-semibold">Invoice</th>
+              <th class="py-3 text-muted small fw-semibold">Customer</th>
+              <th class="py-3 text-muted small fw-semibold">Date</th>
+              <th class="py-3 text-center text-muted small fw-semibold">Items</th>
+              <th class="py-3 pe-3 text-end text-muted small fw-semibold">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sale in monthly_sales %}
+            <tr class="cursor-pointer" style="transition: all 0.2s;" onclick="window.location.href='{% url 'sales:sale_detail' sale.pk %}'">
+              <td class="py-3 ps-3"><a href="{% url 'sales:sale_detail' sale.pk %}" class="text-decoration-none fw-semibold" style="color: #0DCAF0;">{{ sale.invoice_number }}</a></td>
+              <td class="py-3">{{ sale.customer|default:"Walk-in" }}</td>
+              <td class="py-3 text-muted small">{{ sale.date|date:"d M Y" }}</td>
+              <td class="py-3 text-center"><span class="badge bg-light text-dark">{{ sale.items.count }}</span></td>
+              <td class="py-3 pe-3 text-end fw-bold">Rs. {{ sale.grand_total }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-5">
+          <i class="bi bi-inbox fs-1 text-muted opacity-50 mb-3 d-block"></i>
+          <p class="text-muted">No sales recorded this month</p>
+          <small class="text-muted">Sales will appear here when transactions are made</small>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

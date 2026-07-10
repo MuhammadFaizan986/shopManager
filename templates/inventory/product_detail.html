@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}{{ product.name }}{% endblock %}
+{% block page_title %}Product Detail{% endblock %}
+{% block content %}
+<div class="mb-3">
+  <button type="button" class="btn btn-outline-secondary btn-sm" onclick="history.back()">
+    <i class="bi bi-arrow-left me-1"></i> Back
+  </button>
+</div>
+<div class="row g-4">
+  <div class="col-md-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">{{ product.name }}</h5>
+        {% if product.is_low_stock %}
+        <span class="badge bg-warning text-dark mb-2"><i class="bi bi-exclamation-triangle me-1"></i>Low Stock</span>
+        {% endif %}
+        <ul class="list-unstyled text-muted small mt-2">
+          <li><strong>Category:</strong> {{ product.category|default:"—" }}</li>
+          <li><strong>Supplier:</strong> {{ product.supplier|default:"—" }}</li>
+          <li><strong>Purchase Price:</strong> Rs. {{ product.purchase_price }}</li>
+          <li><strong>Selling Price:</strong> Rs. {{ product.selling_price }}</li>
+          <li><strong>Margin:</strong> {{ product.profit_margin|floatformat:1 }}%</li>
+          <li><strong>In Stock:</strong> {{ product.quantity }}</li>
+          <li><strong>Low Stock Alert:</strong> ≤ {{ product.low_stock_threshold }}</li>
+        </ul>
+        {% if product.description %}<p class="small text-muted">{{ product.description }}</p>{% endif %}
+        <div class="d-flex gap-2 mt-3">
+          <a href="{% url 'inventory:product_edit' product.pk %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+          <a href="{% url 'inventory:product_delete' product.pk %}" class="btn btn-sm btn-outline-danger">Delete</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-8">
+    <div class="card shadow-sm">
+      <div class="card-header fw-semibold">Recent Stock History</div>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead class="table-light">
+            <tr><th>Date</th><th>Reason</th><th>Change</th><th>Before</th><th>After</th><th>Note</th><th>User</th></tr>
+          </thead>
+          <tbody>
+            {% for h in history %}
+            <tr>
+              <td>{{ h.timestamp|date:"d M Y H:i" }}</td>
+              <td>{{ h.get_reason_display }}</td>
+              <td class="{% if h.quantity_change > 0 %}text-success{% else %}text-danger{% endif %}">
+                {{ h.quantity_change|stringformat:"+d" }}
+              </td>
+              <td>{{ h.quantity_before }}</td>
+              <td>{{ h.quantity_after }}</td>
+              <td>{{ h.note|default:"—" }}</td>
+              <td>{{ h.user|default:"—" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-center text-muted py-3">No history yet.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
