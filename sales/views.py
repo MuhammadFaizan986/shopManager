@@ -191,6 +191,7 @@ def invoice_pdf(request, pk):
     y -= 3 * mm
 
     # Items header
+    y -= 2 * mm
     c.setFont('Helvetica-Bold', 10.5)
     c.drawString(margin, y, 'Item')
     c.drawString(margin + 30 * mm, y, 'Qty')
