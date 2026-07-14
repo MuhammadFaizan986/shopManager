@@ -126,99 +126,157 @@ def invoice_detail(request, pk):
 def invoice_pdf(request, pk):
     import io
     from reportlab.pdfgen import canvas
-    from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
     from reportlab.lib import colors
 
     sale = get_object_or_404(Sale.objects.prefetch_related('items__product'), pk=pk)
 
+    # 58mm receipt format
+    receipt_width = 58 * mm
+    receipt_height = 297 * mm
+    pagesize = (receipt_width, receipt_height)
+
     buf = io.BytesIO()
-    width, height = A4
-    c = canvas.Canvas(buf, pagesize=A4)
-    margin = 20 * mm
-    y = height - margin
+    width, height = pagesize
+    c = canvas.Canvas(buf, pagesize=pagesize)
+    margin = 2.5 * mm
+    y = height - (margin + 5 * mm)
 
-    # Header
-    c.setFont('Helvetica-Bold', 18)
-    c.drawString(margin, y, 'ShopManager')
-    c.setFont('Helvetica', 10)
-    c.drawString(margin, y - 6 * mm, 'Tax Invoice')
-
-    c.setFont('Helvetica-Bold', 12)
-    c.drawRightString(width - margin, y, sale.invoice_number)
-    c.setFont('Helvetica', 10)
-    c.drawRightString(width - margin, y - 6 * mm, f'Date: {sale.date.strftime("%d %b %Y")}')
-
-    y -= 20 * mm
-
-    # Bill To
-    if sale.customer:
-        c.setFont('Helvetica-Bold', 10)
-        c.drawString(margin, y, 'Bill To:')
-        c.setFont('Helvetica', 10)
-        c.drawString(margin, y - 5 * mm, sale.customer.name)
-        if sale.customer.phone:
-            c.drawString(margin, y - 10 * mm, sale.customer.phone)
-        y -= 18 * mm
-
+    # Shop Name Header
+    c.setFont('Helvetica-Bold', 11)
+    c.drawCentredString(width / 2, y, 'UmairZubair')
     y -= 4 * mm
 
-    # Table header
-    col_widths = [10 * mm, 80 * mm, 20 * mm, 30 * mm, 30 * mm]
-    col_x = [margin + sum(col_widths[:i]) for i in range(len(col_widths))]
-    row_h = 7 * mm
-
-    c.setFillColor(colors.HexColor('#f5f5f5'))
-    c.rect(margin, y - row_h, width - 2 * margin, row_h, fill=1, stroke=1)
-    c.setFillColor(colors.black)
     c.setFont('Helvetica-Bold', 9)
-    headers = ['#', 'Product', 'Qty', 'Unit Price', 'Total']
-    for i, h in enumerate(headers):
-        if i >= 2:
-            c.drawRightString(col_x[i] + col_widths[i] - 2 * mm, y - row_h + 2 * mm, h)
-        else:
-            c.drawString(col_x[i] + 2 * mm, y - row_h + 2 * mm, h)
-    y -= row_h
+    c.drawCentredString(width / 2, y, 'Tailoring Shop')
+    y -= 4 * mm
 
-    # Table rows
-    c.setFont('Helvetica', 9)
-    for idx, item in enumerate(sale.items.all(), 1):
-        c.rect(margin, y - row_h, width - 2 * margin, row_h, fill=0, stroke=1)
-        c.drawString(col_x[0] + 2 * mm, y - row_h + 2 * mm, str(idx))
-        c.drawString(col_x[1] + 2 * mm, y - row_h + 2 * mm, item.product.name[:40])
-        c.drawRightString(col_x[2] + col_widths[2] - 2 * mm, y - row_h + 2 * mm, str(item.quantity))
-        c.drawRightString(col_x[3] + col_widths[3] - 2 * mm, y - row_h + 2 * mm, f'Rs. {item.unit_price}')
-        c.drawRightString(col_x[4] + col_widths[4] - 2 * mm, y - row_h + 2 * mm, f'Rs. {item.line_total}')
-        y -= row_h
+    c.setFont('Helvetica', 7)
+    c.drawCentredString(width / 2, y, '0322-4266252, 0316-4173209')
+    y -= 3.5 * mm
 
-    # Totals
-    y -= 8 * mm
-    c.setFont('Helvetica', 10)
-    c.drawRightString(width - margin - 35 * mm, y, 'Subtotal:')
-    c.drawRightString(width - margin, y, f'Rs. {sale.subtotal}')
-    y -= 7 * mm
-    if sale.discount:
-        c.drawRightString(width - margin - 35 * mm, y, 'Discount:')
-        c.drawRightString(width - margin, y, f'- Rs. {sale.discount}')
-        y -= 7 * mm
-    # Separator line above Grand Total
-    c.setStrokeColor(colors.HexColor('#cccccc'))
-    c.line(width - margin - 70 * mm, y + 4 * mm, width - margin, y + 4 * mm)
+    # Separator
+    c.setLineWidth(1)
     c.setStrokeColor(colors.black)
-    c.setFont('Helvetica-Bold', 11)
-    c.drawRightString(width - margin - 35 * mm, y, 'Grand Total:')
-    c.drawRightString(width - margin, y, f'Rs. {sale.grand_total}')
+    c.line(margin, y, width - margin, y)
+    y -= 3.5 * mm
+
+    # Invoice details (centered)
+    c.setFont('Helvetica-Bold', 9)
+    c.drawCentredString(width / 2, y, sale.invoice_number)
+    y -= 3.5 * mm
+
+    c.setFont('Helvetica', 8)
+    c.drawCentredString(width / 2, y, sale.date.strftime('%d %b %Y'))
+    y -= 4.5 * mm
+
+    # Customer info
+    if sale.customer:
+        c.setFont('Helvetica-Bold', 7)
+        c.drawString(margin, y, 'Customer:')
+        c.setFont('Helvetica', 7)
+        y -= 3 * mm
+        c.drawString(margin + 1 * mm, y, sale.customer.name[:26])
+        if sale.customer.phone:
+            y -= 3 * mm
+            c.drawString(margin + 1 * mm, y, sale.customer.phone)
+        y -= 4 * mm
+    else:
+        y -= 2.5 * mm
+
+    # Separator
+    c.setLineWidth(0.5)
+    c.setStrokeColor(colors.HexColor('#cccccc'))
+    c.line(margin, y, width - margin, y)
+    y -= 3 * mm
+
+    # Items header
+    c.setFont('Helvetica-Bold', 7)
+    c.drawString(margin, y, 'Description')
+    c.drawString(margin + 28 * mm, y, 'Qty')
+    c.drawRightString(width - margin - 0.5 * mm, y, 'Price')
+    y -= 2.8 * mm
+
+    # Items separator
+    c.setLineWidth(0.5)
+    c.setStrokeColor(colors.HexColor('#cccccc'))
+    c.line(margin, y, width - margin, y)
+    y -= 3 * mm
+
+    # Items list
+    c.setFont('Helvetica', 7)
+    for item in sale.items.all():
+        # Product name
+        product_name = item.product.name[:22]
+        c.drawString(margin, y, product_name)
+
+        # Qty and Total
+        c.drawString(margin + 28 * mm, y, str(item.quantity))
+        c.drawRightString(width - margin - 0.5 * mm, y, f'Rs.{item.line_total:.2f}')
+        y -= 2.8 * mm
+
+        # Unit price (smaller, grayed)
+        c.setFont('Helvetica', 6)
+        c.setFillColor(colors.HexColor('#777777'))
+        c.drawString(margin + 1.5 * mm, y, f'@ Rs.{item.unit_price:.2f}')
+        c.setFillColor(colors.black)
+        c.setFont('Helvetica', 7)
+        y -= 3 * mm
+
+    # Totals separator
+    y -= 4 * mm
+    c.setLineWidth(0.5)
+    c.setStrokeColor(colors.HexColor('#cccccc'))
+    c.line(margin, y, width - margin, y)
+    y -= 3.5 * mm
+
+    # Subtotal
+    c.setFont('Helvetica', 8)
+    c.drawString(margin, y, 'Subtotal')
+    c.drawRightString(width - margin - 0.5 * mm, y, f'Rs.{sale.subtotal:.2f}')
+    y -= 3.5 * mm
+
+    # Discount
+    if sale.discount and float(sale.discount) > 0:
+        c.drawString(margin, y, 'Discount')
+        c.drawRightString(width - margin - 0.5 * mm, y, f'-Rs.{sale.discount:.2f}')
+        y -= 3.5 * mm
+
+    # Grand Total
+    y -= 2 * mm
+    c.setLineWidth(1)
+    c.setStrokeColor(colors.black)
+    c.line(margin, y, width - margin, y)
+    y -= 3.5 * mm
+
+    c.setFont('Helvetica-Bold', 10)
+    c.setFillColor(colors.black)
+    c.drawString(margin, y, 'Total')
+    c.drawRightString(width - margin - 0.5 * mm, y, f'Rs.{sale.grand_total:.2f}')
+    y -= 3.5 * mm
+
+    c.setLineWidth(1)
+    c.line(margin, y, width - margin, y)
+    y -= 4 * mm
 
     # Notes
-    if sale.notes:
-        y -= 12 * mm
-        c.setFont('Helvetica', 9)
-        c.drawString(margin, y, f'Notes: {sale.notes}')
+    if sale.notes and sale.notes.strip():
+        c.setFont('Helvetica', 6)
+        c.setFillColor(colors.HexColor('#666666'))
+        notes_text = sale.notes[:35]
+        c.drawString(margin, y, f'Note: {notes_text}')
+        y -= 3.5 * mm
 
-    # Footer
-    c.setFont('Helvetica', 9)
+    # Footer message
+    y -= 2.5 * mm
+    c.setFont('Helvetica-Bold', 8)
+    c.setFillColor(colors.black)
+    c.drawCentredString(width / 2, y, 'Thank You!')
+    y -= 3 * mm
+
+    c.setFont('Helvetica', 6)
     c.setFillColor(colors.HexColor('#888888'))
-    c.drawCentredString(width / 2, margin, 'Thank you for your business!')
+    c.drawCentredString(width / 2, y, 'Visit Again')
 
     c.save()
     pdf = buf.getvalue()

@@ -117,7 +117,6 @@ def sales_report_pdf(request):
     import io
     from django.http import HttpResponse
     from reportlab.pdfgen import canvas
-    from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
     from reportlab.lib import colors
 
@@ -127,64 +126,97 @@ def sales_report_pdf(request):
     total_revenue = sum(s.grand_total for s in sales)
     total_profit = sum(s.total_profit for s in sales)
 
+    # 58mm receipt format
+    receipt_width = 58 * mm
+    receipt_height = 297 * mm
+    pagesize = (receipt_width, receipt_height)
+
     buf = io.BytesIO()
-    width, height = A4
-    c = canvas.Canvas(buf, pagesize=A4)
-    margin = 20 * mm
+    width, height = pagesize
+    c = canvas.Canvas(buf, pagesize=pagesize)
+    margin = 2.5 * mm
     y = height - margin
 
-    # Header
-    c.setFont('Helvetica-Bold', 16)
-    c.drawString(margin, y, 'Sales Report')
-    c.setFont('Helvetica', 10)
-    c.drawString(margin, y - 6 * mm, f'Period: {date_from}  to  {date_to}')
-    c.drawRightString(width - margin, y, f'Total Sales: {len(sales)}')
-    c.drawRightString(width - margin, y - 6 * mm, f'Revenue: Rs. {total_revenue}    Profit: Rs. {total_profit}')
+    # Shop Header
+    c.setFont('Helvetica-Bold', 10)
+    c.drawCentredString(width / 2, y, 'UmairZubair')
+    y -= 3 * mm
+    c.setFont('Helvetica-Bold', 8)
+    c.drawCentredString(width / 2, y, 'Tailoring Shop')
+    y -= 3 * mm
 
-    y -= 18 * mm
+    # Separator
+    c.setLineWidth(1)
+    c.setStrokeColor(colors.black)
+    c.line(margin, y, width - margin, y)
+    y -= 2.5 * mm
+
+    # Report Title
+    c.setFont('Helvetica-Bold', 9)
+    c.drawCentredString(width / 2, y, 'Sales Report')
+    y -= 2.5 * mm
+
+    # Report Details
+    c.setFont('Helvetica', 7)
+    c.drawCentredString(width / 2, y, f'{date_from} to {date_to}')
+    y -= 3 * mm
+
+    # Summary
+    c.setFont('Helvetica', 6)
+    c.drawString(margin, y, f'Sales: {len(sales)}')
+    c.drawRightString(width - margin - 0.5 * mm, y, f'Revenue: Rs.{total_revenue:.2f}')
+    y -= 2.5 * mm
+    c.drawString(margin, y, f'Profit: Rs.{total_profit:.2f}')
+    y -= 3.5 * mm
+
+    # Separator
+    c.setLineWidth(0.5)
+    c.line(margin, y, width - margin, y)
+    y -= 3 * mm
 
     # Table header
-    col_widths = [42 * mm, 28 * mm, 45 * mm, 18 * mm, 28 * mm, 28 * mm]
-    col_x = [margin + sum(col_widths[:i]) for i in range(len(col_widths))]
-    row_h = 7 * mm
-    headers = ['Invoice', 'Date', 'Customer', 'Items', 'Total', 'Profit']
+    c.setFont('Helvetica-Bold', 6)
+    c.drawString(margin, y, 'Invoice')
+    c.drawString(margin + 16 * mm, y, 'Date')
+    c.drawString(margin + 26 * mm, y, 'Items')
+    c.drawRightString(width - margin, y, 'Total')
+    y -= 2.5 * mm
+    c.setLineWidth(0.5)
+    c.line(margin, y, width - margin, y)
+    y -= 2.5 * mm
 
-    c.setFillColor(colors.HexColor('#f5f5f5'))
-    c.rect(margin, y - row_h, width - 2 * margin, row_h, fill=1, stroke=1)
-    c.setFillColor(colors.black)
-    c.setFont('Helvetica-Bold', 9)
-    for i, h in enumerate(headers):
-        if i >= 3:
-            c.drawRightString(col_x[i] + col_widths[i] - 2 * mm, y - row_h + 2 * mm, h)
-        else:
-            c.drawString(col_x[i] + 2 * mm, y - row_h + 2 * mm, h)
-    y -= row_h
-
-    c.setFont('Helvetica', 9)
+    # Table rows
+    c.setFont('Helvetica', 6)
     for sale in sales:
-        if y < margin + row_h:
+        if y < margin + 10 * mm:
             c.showPage()
             y = height - margin
-        c.rect(margin, y - row_h, width - 2 * margin, row_h, fill=0, stroke=1)
-        c.drawString(col_x[0] + 2 * mm, y - row_h + 2 * mm, sale.invoice_number)
-        c.drawString(col_x[1] + 2 * mm, y - row_h + 2 * mm, sale.date.strftime('%d %b %Y'))
-        customer = str(sale.customer) if sale.customer else 'Walk-in'
-        c.drawString(col_x[2] + 2 * mm, y - row_h + 2 * mm, customer[:22])
-        c.drawRightString(col_x[3] + col_widths[3] - 2 * mm, y - row_h + 2 * mm, str(sale.items.count()))
-        c.drawRightString(col_x[4] + col_widths[4] - 2 * mm, y - row_h + 2 * mm, f'Rs. {sale.grand_total}')
-        c.setFillColor(colors.HexColor('#198754'))
-        c.drawRightString(col_x[5] + col_widths[5] - 2 * mm, y - row_h + 2 * mm, f'Rs. {sale.total_profit}')
-        c.setFillColor(colors.black)
-        y -= row_h
 
-    # Totals row
-    y -= 4 * mm
-    c.setFont('Helvetica-Bold', 10)
-    c.drawRightString(col_x[4] + col_widths[4] - 2 * mm, y, f'Rs. {total_revenue}')
+        invoice = sale.invoice_number
+        date_str = sale.date.strftime('%d %b')
+        items_count = str(sale.items.count())
+        total_str = f'Rs.{sale.grand_total}'
+
+        c.drawString(margin, y, invoice)
+        c.drawString(margin + 16 * mm, y, date_str)
+        c.drawString(margin + 26 * mm, y, items_count)
+        c.drawRightString(width - margin, y, total_str)
+        y -= 2.5 * mm
+
+    # Separator and totals
+    y -= 2 * mm
+    c.setLineWidth(0.5)
+    c.line(margin, y, width - margin, y)
+    y -= 3 * mm
+
+    c.setFont('Helvetica-Bold', 7)
+    c.drawString(margin, y, 'Total:')
+    c.drawRightString(width - margin, y, f'Rs.{total_revenue}')
+    y -= 2.5 * mm
     c.setFillColor(colors.HexColor('#198754'))
-    c.drawRightString(col_x[5] + col_widths[5] - 2 * mm, y, f'Rs. {total_profit}')
+    c.drawString(margin, y, 'Profit:')
+    c.drawRightString(width - margin, y, f'Rs.{total_profit}')
     c.setFillColor(colors.black)
-    c.drawRightString(col_x[3] + col_widths[3] - 2 * mm, y, 'Total:')
 
     c.save()
     pdf = buf.getvalue()
