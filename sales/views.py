@@ -205,7 +205,7 @@ def invoice_pdf(request, pk):
 
     # Items list
     c.setFont('Helvetica', 10)
-    for idx, item in enumerate(sale.items.all()):
+    for item in sale.items.all():
         # Product name
         product_name = item.product.name[:16]
         c.drawString(margin, y, product_name)
@@ -222,12 +222,11 @@ def invoice_pdf(request, pk):
         c.setFont('Helvetica', 10)
         y -= 3.2 * mm
 
-        # Separator line between items (except after last item)
-        if idx < len(list(sale.items.all())) - 1:
-            c.setLineWidth(0.3)
-            c.setStrokeColor(colors.HexColor('#e0e0e0'))
-            c.line(margin, y, width - margin, y)
-            y -= 2 * mm
+        # Separator line between items
+        c.setLineWidth(0.3)
+        c.setStrokeColor(colors.HexColor('#e0e0e0'))
+        c.line(margin, y, width - margin, y)
+        y -= 2 * mm
 
     # Totals separator
     y -= 4 * mm
