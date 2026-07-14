@@ -193,7 +193,7 @@ def invoice_pdf(request, pk):
     # Items header
     c.setFont('Helvetica-Bold', 10.5)
     c.drawString(margin, y, 'Item')
-    c.drawString(margin + 27 * mm, y, 'Qty')
+    c.drawString(margin + 30 * mm, y, 'Qty')
     c.drawRightString(width - margin - 0.5 * mm, y, 'Price')
     y -= 3.5 * mm
 
@@ -211,7 +211,7 @@ def invoice_pdf(request, pk):
         c.drawString(margin, y, product_name)
 
         # Qty and Total
-        c.drawString(margin + 27 * mm, y, str(item.quantity))
+        c.drawString(margin + 30 * mm, y, str(item.quantity))
         c.drawRightString(width - margin - 0.5 * mm, y, f'Rs.{item.line_total:.2f}')
         y -= 3.2 * mm
 
@@ -280,8 +280,9 @@ def invoice_pdf(request, pk):
     y -= 3 * mm
 
     c.setFont('Helvetica', 6)
-    c.setFillColor(colors.HexColor('#888888'))
+    c.setFillColor(colors.black)
     c.drawCentredString(width / 2, y, 'Visit Again')
+    y -= 4 * mm
 
     c.save()
     pdf = buf.getvalue()
