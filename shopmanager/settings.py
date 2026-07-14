@@ -71,12 +71,14 @@ TEMPLATES = [
 WSGI_APPLICATION = 'shopmanager.wsgi.application'
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
+
 if DATABASE_URL:
     DATABASES = {
         'default': dj_database_url.config(
             default=DATABASE_URL,
             conn_max_age=600,
             conn_health_checks=True,
+            engine='django.db.backends.postgresql',
         )
     }
 else:
@@ -86,6 +88,8 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+
+print(f"DEBUG: Using database - {'PostgreSQL (Neon)' if DATABASE_URL else 'SQLite'}")
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
