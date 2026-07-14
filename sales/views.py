@@ -191,36 +191,36 @@ def invoice_pdf(request, pk):
     y -= 3 * mm
 
     # Items header
-    c.setFont('Helvetica-Bold', 9)
+    c.setFont('Helvetica-Bold', 10.5)
     c.drawString(margin, y, 'Item')
     c.drawString(margin + 27 * mm, y, 'Qty')
     c.drawRightString(width - margin - 0.5 * mm, y, 'Price')
-    y -= 3.2 * mm
+    y -= 3.5 * mm
 
     # Items separator
     c.setLineWidth(0.5)
     c.setStrokeColor(colors.HexColor('#cccccc'))
     c.line(margin, y, width - margin, y)
-    y -= 3.2 * mm
+    y -= 3.5 * mm
 
     # Items list
-    c.setFont('Helvetica', 9)
+    c.setFont('Helvetica', 10)
     for item in sale.items.all():
         # Product name
-        product_name = item.product.name[:18]
+        product_name = item.product.name[:16]
         c.drawString(margin, y, product_name)
 
         # Qty and Total
         c.drawString(margin + 27 * mm, y, str(item.quantity))
         c.drawRightString(width - margin - 0.5 * mm, y, f'Rs.{item.line_total:.2f}')
-        y -= 3 * mm
+        y -= 3.2 * mm
 
         # Unit price (smaller, black)
-        c.setFont('Helvetica', 7.5)
+        c.setFont('Helvetica', 8)
         c.setFillColor(colors.black)
         c.drawString(margin + 1.5 * mm, y, f'@ Rs.{item.unit_price:.2f}')
-        c.setFont('Helvetica', 9)
-        y -= 3.2 * mm
+        c.setFont('Helvetica', 10)
+        y -= 3.5 * mm
 
     # Totals separator
     y -= 4 * mm
