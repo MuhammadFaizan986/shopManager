@@ -195,7 +195,11 @@ def invoice_pdf(request, pk):
     c.setFont('Helvetica-Bold', 10.5)
     c.drawString(margin, y, 'Item')
     c.drawString(margin + 30 * mm, y, 'Qty')
+    # Price header with small RS
     c.drawRightString(width - margin - 0.5 * mm, y, 'Price')
+    c.setFont('Helvetica-Bold', 7)
+    c.drawRightString(width - margin - 0.5 * mm, y - 2.5 * mm, '(RS)')
+    c.setFont('Helvetica-Bold', 10.5)
     y -= 3.5 * mm
 
     # Items separator
@@ -216,7 +220,7 @@ def invoice_pdf(request, pk):
 
         # Qty and Total
         c.drawString(margin + 30 * mm, y, str(item.quantity))
-        c.drawRightString(width - margin - 0.5 * mm, y, f'Rs.{item.line_total:.0f}')
+        c.drawRightString(width - margin - 0.5 * mm, y, f'{item.line_total:.0f}')
         y -= 3.5 * mm
 
         # Unit price (smaller, black)
@@ -245,7 +249,7 @@ def invoice_pdf(request, pk):
     # Subtotal
     c.setFont('Helvetica', 8)
     c.drawString(margin, y, 'Subtotal')
-    c.drawRightString(width - margin - 0.5 * mm, y, f'Rs.{sale.subtotal:.0f}')
+    c.drawRightString(width - margin - 0.5 * mm, y, f'{sale.subtotal:.0f}')
     y -= 3.5 * mm
 
     # Discount
@@ -264,7 +268,7 @@ def invoice_pdf(request, pk):
     c.setFont('Helvetica-Bold', 10)
     c.setFillColor(colors.black)
     c.drawString(margin, y, 'Total')
-    c.drawRightString(width - margin - 0.5 * mm, y, f'Rs.{sale.grand_total:.0f}')
+    c.drawRightString(width - margin - 0.5 * mm, y, f'{sale.grand_total:.0f}')
     y -= 3.5 * mm
 
     c.setLineWidth(1)
