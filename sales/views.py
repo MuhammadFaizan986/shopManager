@@ -280,16 +280,16 @@ def invoice_pdf(request, pk):
         y -= 3.5 * mm
 
     # Footer message
-    y -= 2.5 * mm
-    c.setFont('Helvetica-Bold', 8)
+    y -= 3 * mm
+    c.setFont('Helvetica-Bold', 10)
     c.setFillColor(colors.black)
     c.drawCentredString(width / 2, y, 'Thank You!')
-    y -= 3 * mm
+    y -= 4 * mm
 
-    c.setFont('Helvetica', 6)
+    c.setFont('Helvetica', 9)
     c.setFillColor(colors.black)
     c.drawCentredString(width / 2, y, 'Visit Again')
-    y -= 4 * mm
+    y -= 6 * mm
 
     c.save()
     pdf = buf.getvalue()
