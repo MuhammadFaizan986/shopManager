@@ -139,8 +139,8 @@ def invoice_pdf(request, pk):
     buf = io.BytesIO()
     width, height = pagesize
     c = canvas.Canvas(buf, pagesize=pagesize)
-    margin = 2.5 * mm
-    y = height - (margin + 5 * mm)
+    margin = 1.5 * mm
+    y = height - (margin + 3 * mm)
 
     # Shop Name Header
     c.setFont('Helvetica-Bold', 11)
@@ -191,9 +191,9 @@ def invoice_pdf(request, pk):
     y -= 3 * mm
 
     # Items header
-    c.setFont('Helvetica-Bold', 7)
-    c.drawString(margin, y, 'Description')
-    c.drawString(margin + 28 * mm, y, 'Qty')
+    c.setFont('Helvetica-Bold', 6.5)
+    c.drawString(margin, y, 'Item')
+    c.drawString(margin + 27 * mm, y, 'Qty')
     c.drawRightString(width - margin - 0.5 * mm, y, 'Price')
     y -= 2.8 * mm
 
@@ -204,24 +204,24 @@ def invoice_pdf(request, pk):
     y -= 3 * mm
 
     # Items list
-    c.setFont('Helvetica', 7)
+    c.setFont('Helvetica', 6.5)
     for item in sale.items.all():
         # Product name
-        product_name = item.product.name[:22]
+        product_name = item.product.name[:20]
         c.drawString(margin, y, product_name)
 
         # Qty and Total
-        c.drawString(margin + 28 * mm, y, str(item.quantity))
+        c.drawString(margin + 27 * mm, y, str(item.quantity))
         c.drawRightString(width - margin - 0.5 * mm, y, f'Rs.{item.line_total:.2f}')
-        y -= 2.8 * mm
+        y -= 2.5 * mm
 
         # Unit price (smaller, grayed)
-        c.setFont('Helvetica', 6)
+        c.setFont('Helvetica', 5.5)
         c.setFillColor(colors.HexColor('#777777'))
         c.drawString(margin + 1.5 * mm, y, f'@ Rs.{item.unit_price:.2f}')
         c.setFillColor(colors.black)
-        c.setFont('Helvetica', 7)
-        y -= 3 * mm
+        c.setFont('Helvetica', 6.5)
+        y -= 2.5 * mm
 
     # Totals separator
     y -= 4 * mm
