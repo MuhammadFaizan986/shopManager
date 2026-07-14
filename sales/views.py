@@ -216,13 +216,13 @@ def invoice_pdf(request, pk):
 
         # Qty and Total
         c.drawString(margin + 30 * mm, y, str(item.quantity))
-        c.drawRightString(width - margin - 0.5 * mm, y, f'Rs.{item.line_total:.2f}')
+        c.drawRightString(width - margin - 0.5 * mm, y, f'Rs.{item.line_total:.0f}')
         y -= 3.5 * mm
 
         # Unit price (smaller, black)
         c.setFont('Helvetica', 8)
         c.setFillColor(colors.black)
-        c.drawString(margin + 1.5 * mm, y, f'@ Rs.{item.unit_price:.2f}')
+        c.drawString(margin + 1.5 * mm, y, f'@ Rs.{item.unit_price:.0f}')
         c.setFont('Helvetica', 10)
         y -= 3 * mm
 
@@ -245,13 +245,13 @@ def invoice_pdf(request, pk):
     # Subtotal
     c.setFont('Helvetica', 8)
     c.drawString(margin, y, 'Subtotal')
-    c.drawRightString(width - margin - 0.5 * mm, y, f'Rs.{sale.subtotal:.2f}')
+    c.drawRightString(width - margin - 0.5 * mm, y, f'Rs.{sale.subtotal:.0f}')
     y -= 3.5 * mm
 
     # Discount
     if sale.discount and float(sale.discount) > 0:
         c.drawString(margin, y, 'Discount')
-        c.drawRightString(width - margin - 0.5 * mm, y, f'-Rs.{sale.discount:.2f}')
+        c.drawRightString(width - margin - 0.5 * mm, y, f'-Rs.{sale.discount:.0f}')
         y -= 3.5 * mm
 
     # Grand Total
@@ -264,7 +264,7 @@ def invoice_pdf(request, pk):
     c.setFont('Helvetica-Bold', 10)
     c.setFillColor(colors.black)
     c.drawString(margin, y, 'Total')
-    c.drawRightString(width - margin - 0.5 * mm, y, f'Rs.{sale.grand_total:.2f}')
+    c.drawRightString(width - margin - 0.5 * mm, y, f'Rs.{sale.grand_total:.0f}')
     y -= 3.5 * mm
 
     c.setLineWidth(1)
