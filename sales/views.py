@@ -327,7 +327,7 @@ def sale_edit(request, pk):
         {
             'product_id': str(item.product.pk),
             'product_name': item.product.name,
-            'quantity': item.quantity,
+            'quantity': float(item.quantity),
             'unit_price': float(item.unit_price),
         }
         for item in sale.items.all()
