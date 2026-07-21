@@ -48,7 +48,7 @@ def sale_create(request):
         str(p.pk): {
             'name': p.name,
             'price': float(p.selling_price),
-            'stock': p.quantity,
+            'stock': int(p.quantity),
         }
         for p in products
     }
@@ -312,7 +312,7 @@ def sale_edit(request, pk):
         str(p.pk): {
             'name': p.name,
             'price': float(p.selling_price),
-            'stock': p.quantity,
+            'stock': int(p.quantity),
         }
         for p in products
     }
@@ -321,7 +321,7 @@ def sale_edit(request, pk):
     for item in sale.items.all():
         pid = str(item.product.pk)
         if pid in product_data:
-            product_data[pid]['stock'] += item.quantity
+            product_data[pid]['stock'] += float(item.quantity)
 
     existing_items = [
         {
