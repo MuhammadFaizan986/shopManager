@@ -173,7 +173,7 @@ function handleAction() {
 
 function updateItem() {
   const item = saleItems[editingIdx];
-  const qty = parseInt(quantityInput.value);
+  const qty = parseFloat(quantityInput.value);
   const price = parseFloat(unitPriceInput.value);
 
   if (qty < 1 || isNaN(qty)) { alert('Enter a valid quantity.'); return; }
@@ -195,7 +195,7 @@ function addItem() {
   if (!opt || !opt.value) { alert('Select a product.'); return; }
   const productId = opt.value;
   const data = productData[productId];
-  const qty = parseInt(quantityInput.value);
+  const qty = parseFloat(quantityInput.value);
   const price = parseFloat(unitPriceInput.value);
 
   if (qty < 1 || isNaN(qty)) { alert('Enter a valid quantity.'); return; }
