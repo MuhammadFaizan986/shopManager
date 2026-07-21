@@ -78,7 +78,7 @@ def sale_create(request):
             )
             for item in items:
                 product = get_object_or_404(Product, pk=item['product_id'])
-                qty = int(item['quantity'])
+                qty = float(item['quantity'])
                 price = float(item['unit_price'])
 
                 if product.quantity < qty:
@@ -376,7 +376,7 @@ def sale_edit(request, pk):
             # Create new items and deduct stock
             for item in new_items:
                 product = get_object_or_404(Product, pk=item['product_id'])
-                qty = int(item['quantity'])
+                qty = float(item['quantity'])
                 price = float(item['unit_price'])
 
                 if product.quantity < qty:
